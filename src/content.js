@@ -19,7 +19,13 @@ function walkTextNodes() {
     const promises = nodes.map(node => {
       return new Promise(resolve => {
         chrome.runtime.sendMessage({ type: 'CLEAN', text: node.nodeValue }, res => {
-          if (res?.cleaned) node.nodeValue = res.cleaned;
+          if (res?.cleaned) {
+            node.nodeValue = res.cleaned;
+            console.log('순화 되었습니다. 순환된 노드: ', node.nodeValue);
+          }
+          else {
+            console.log('node가 비어있거나 API 응답 없음');
+          }
           resolve();
         });
       });
@@ -35,7 +41,7 @@ function walkTextNodes() {
 // 다크모드 적용 필요(추후에)
 function showOverlay() {
     const el = document.createElement('div');
-    el.id = 'crocodile-bird--overlay';
+    el.id = 'crocodile-bird-overlay';
   
     // 이미지 엘리먼트 생성
     const img = document.createElement('img');
@@ -73,7 +79,7 @@ function showOverlay() {
     const intervalId = setInterval(() => {
       img.src = frames[currentFrame];
       currentFrame = (currentFrame + 1) % frames.length;
-    }, 400); // 0.3초 간격으로 전환
+    }, 400);
   
     // 오버레이 제거 시 interval 해제도 필요하므로 저장
     el.dataset.intervalId = intervalId;
