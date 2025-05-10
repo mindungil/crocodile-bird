@@ -3,7 +3,7 @@
     "name": "Crocodile-Bird Bot",
     "version": "1.0",
     "description": "웹페이지의 텍스트를 순화해주는 확장 프로그램",
-    "permissions": ["scripting", "activeTab"],
+    "permissions": ["scripting", "activeTab", "storage", "tabs"],
     "host_permissions": ["<all_urls>"],
     "action": {
       "default_popup": "popup.html",
@@ -19,7 +19,8 @@
     "content_scripts": [
       {
         "matches": ["<all_urls>"],
-        "js": ["content.js"]
+        "js": ["content.js"],
+        "run_at": "document_idle"
       }
     ],
     "icons": {

@@ -5,12 +5,40 @@
   <title>Crocodile-Bird Bot</title>
   <style>
     body { font-family: sans-serif; padding: 10px; width: 200px; }
-    button { width: 100%; padding: 10px; font-size: 14px; }
+    #toggleBird {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 10px;  
+    }
+    .steps {
+    display: none;
+   flex-direction: row;
+   gap: 6px;   
+   }
+   .step-btn {
+    padding: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+  }
+    .step-btn.active {
+      background-color: #3CAF50;
+      color: white;
+      font-weight: bold;
+  }
   </style>
 </head>
 <body>
   <h3>🐊 Crocodile-Bird Bot</h3>
-  <button id="clean">악어새 호출</button>
+  <button id="togleBird">악어새 호출</button>
+  <div class="steps" id="'stepButtons">
+    <button class="step-btn" data-step="1">1단계</button>
+    <button class="step-btn" data-step="2">2단계</button>
+    <button class="step-btn" data-step="3">3단계</button>
+  </div>
   <script type="module" src="./popup.js"></script>
 </body>
 </html>
