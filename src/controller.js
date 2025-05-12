@@ -35,23 +35,28 @@ async function cleanText(text, num, apiKey) {
             message = prompts.level_3;
         }
 
-        const apiKey = process.env.OPENAI_API_KEY;
-        const res = await axios.post(
+        const res = await fetch(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-4o',
-                messages: [{ 
-                    role: 'user', 
-                    // 프롬프트의 내용을 단계에 따라 구분 -> 프롬프트를 구분
-                    content: `${message}       변경해야 할 텍스트: ${text}`}]
-            },
-            {
+                method: 'POST',
                 headers: {
                     Authorization: `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
-                }
-            }
-        );
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `${message},    변경해야 할 텍스트: ${text}`
+                        }
+                    ]
+                })
+        });
+
+        if (!res.ok) {
+            throw new Error("HTTP 에러, status: ", res.status);
+        }
         console.log(`Text 처리 성공`);
         return res.data.choices?.[0]?.message?.content?.trim() || text;
     } catch(err) {

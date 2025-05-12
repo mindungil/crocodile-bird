@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   }
 
-  if (message.type --- "SET_STEP") {
+  if (message.type === "SET_STEP") {
     window.crocodileBirdStep = message.step;
     console.log(`${message.step} 단계로 설정`);
   }
