@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Crocodile-Bird Bot</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
   <style>
     body { font-family: sans-serif; padding: 10px; width: 200px; }
     #toggleBird {
@@ -13,22 +14,46 @@
     }
     .steps {
     display: none;
-   flex-direction: row;
-   gap: 6px;   
-   }
-   .step-btn {
-    padding: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    background-color: #f0f0f0;
-    border-radius: 4px;
-  }
+    flex-direction: row;
+    gap: 6px;   
+    }
+    .step-btn {
+      padding: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+    }
     .step-btn.active {
       background-color: #3CAF50;
       color: white;
       font-weight: bold;
-  }
+    }
+    #apiKeySection {
+      margin-top: 12px;
+    }
+    #apiKeyInput {
+      width: 100%;
+      padding: 6px;
+      font-size: 13px;
+      margin-bottom: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #saveApiKeyBtn {
+      width: 100%;
+      padding: 6px;
+      font-size: 13px;
+      background-color: #3CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #saveApiKeyBtn:hover {
+      background-color: #45a049;
+    }
   </style>
 </head>
 <body>
@@ -39,6 +64,12 @@
     <button class="step-btn" data-step="2">2단계</button>
     <button class="step-btn" data-step="3">3단계</button>
   </div>
+
+  <div id="apiKeySection">
+    <input type="text" id="apiKeyInput" placeholder="OpenAI API Key 입력">
+    <button id="saveApiKeyBtn">API Key 저장</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script type="module" src="./popup.js"></script>
 </body>
 </html>

@@ -46,4 +46,37 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   });
+
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+
+  chrome.storage.local.get(['apiKey'], data=> {
+    if (data.apiKey) {
+      apiKeyInput.value = data.apiKey;
+    }
+  });
+
+  saveApiKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      Toastify({
+        text: "❗ API 키를 입력하세요.",
+        duration: 3000,
+        gravity: "top",
+        position: "center",
+        backgroundColor: "#f44336", // 빨간색
+    }).showToast();
+      return;
+    }
+
+    chrome.storage.local.set({apiKey: key }, () => {
+      Toastify({
+        text: "✅ API 키가 저장되었습니다.",
+        duration: 3000,
+        gravity: "top",
+        position: "center",
+        backgroundColor: "#3CAF50", 
+    }).showToast();
+    })
+  })
 });
