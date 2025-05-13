@@ -5,11 +5,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // JS 진입점
+        popup: resolve(__dirname, 'popup.html'),
         content: resolve(__dirname, 'src/content.js'),
         controller: resolve(__dirname, 'src/controller.js'),
-        // HTML 진입점
-        ui: resolve(__dirname, 'src/popup.html')
       },
       output: {
         entryFileNames: '[name].js'

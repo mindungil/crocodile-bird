@@ -4,12 +4,14 @@
   "description": "\"# crocodile-bird\"",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.9.0"
+    "axios": "^1.9.0",
+    "toastify-js": "^1.12.0"
   },
   "devDependencies": {
     "vite": "^6.3.5"

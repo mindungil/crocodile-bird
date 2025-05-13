@@ -1,25 +1,45 @@
+chrome.storage.local.get(['crocodileBirdOn'], result => {
+  if (result.crocodileBirdOn === undefined) {
+    chrome.storage.local.set({ crocodileBirdOn: false }, () => {
+      console.log('기본값 crocodileBirdOn: "off" 설정됨');
+    });
+  } 
+  else if(result.crocodileBirdOn === false ) {
+    console.log('악어새 봇이 해제 중 입니다.');
+    return;
+  }
+});
+
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "TOGGLE_BIRD") {
     window.crocodileBirdActive = false;
     removeOverlay();
     console.log("악어새 기능 중단");
-  }
-  else {
-    window.crocodileBirdActive = true;
-    chrome.storage.local.get('step', data => {
-      window.crocodileBirdStep = data.step || 1;
-      walkTextNodes();
-    });
-  }
 
-  if (message.type === "SET_STEP") {
+    return;
+  }
+  // 스텝을 변경할 때, 실행 할 수 없는 경우 일 수 도 있음.
+  // 스텝 변경 후 실행, 스텝 변경 해도 실행하지 않음 -> 고려해야함
+  else if (message.type === "SET_STEP"){
     window.crocodileBirdStep = message.step;
     console.log(`${message.step} 단계로 설정`);
   }
+
+  console.log('악어새 봇이 돌아가는 중 입니다....');
+  window.crocodileBirdActive = true;
+  chrome.storage.local.get('step', data => {
+    window.crocodileBirdStep = data.step || 1;
+    walkTextNodes();
+  });
 });
 
 // 웹 페이지 내의 텍스트 노드를 모두 탐색, 순회, 응답 텍스트로 대체
 function walkTextNodes() {
+  // 함수 시작 로그
+  console.log('[Content] content.js loaded');
+
+
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const nodes = [];
 
@@ -33,6 +53,8 @@ function walkTextNodes() {
       if (node.nodeValue.trim()) {
         nodes.push(node);
       }
+
+      console.log(`text 추출 중: ${node.nodeValue}`);
     }
 
     // 오버레이 삽입( 대기시간 )
@@ -119,9 +141,8 @@ function removeOverlay() {
     // el 오버레이의 NULL 제거 방지
     if (el) {
         // 동작도 제거해야함
+        const id = parseInt(el.dataset.intervalId);
         clearInterval(el.dataset.intervalId);
         el.remove();
     }
 }
-
-walkTextNodes();

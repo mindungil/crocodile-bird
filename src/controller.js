@@ -1,5 +1,4 @@
-import axios from 'axios';
-import prompts from './utils/prompts';
+import {level_1, level_2, level_3} from './utils/prompts';
 
 // content.js 로 부터 온 요청 관리
 // clean 명령 뿐 아니라 다른 명령도 구현해야 함(예시 - remove 등)
@@ -14,9 +13,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 return;
             }
 
-            const cleaned = await cleanText(msg.text.msg.num, apiKey);
-            sendResponse({cleaned});
-        });
+            try {
+                const cleaned = await cleanText(msg.text, msg.num || 3, apiKey);
+                sendResponse({cleaned});
+            } catch(err) {
+                console.error(`clean Text 실패: ${err}`);
+                sendResponse({cleaned: msg.text});
+            }
+
+        }); 
         return true;
     }
 });
@@ -26,9 +31,9 @@ async function cleanText(text, num, apiKey) {
     try {
         // num 번호에 따라 API 요청에 보내는 프롬프트 변경
         let message;
-        if (num == 1) message = prompts.level_1;
-        else if (num == 2) message = prompts.level_2;
-        else if (num == 3) message = prompts.level_3;
+        if (num == 1) message = level_1;
+        else if (num == 2) message = level_2;
+        else if (num == 3) message = level_3;
         else {
             console.log('프롬프트 번호 수신 오류');
             // 프롬프트 번호 수신 오류 발생 시 최악의 상황을 방지하여 가장 높은 수준 적용
