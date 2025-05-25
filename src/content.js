@@ -1,18 +1,5 @@
-chrome.storage.local.get(['crocodileBirdOn'], result => {
-  if (result.crocodileBirdOn === undefined) {
-    chrome.storage.local.set({ crocodileBirdOn: false }, () => {
-      console.log('기본값 crocodileBirdOn: "off" 설정됨');
-    });
-  } 
-  else if(result.crocodileBirdOn === false ) {
-    console.log('악어새 봇이 해제 중 입니다.');
-    return;
-  }
-});
-
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "TOGGLE_BIRD") {
+  if (message.type === "TOGGLE_BIRD_OFF") {
     window.crocodileBirdActive = false;
     removeOverlay();
     console.log("악어새 기능 중단");
@@ -26,7 +13,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(`${message.step} 단계로 설정`);
   }
 
-  console.log('악어새 봇이 돌아가는 중 입니다....');
+  console.log(`악어새 봇이 ${message.step}단계로 돌아가는 중 입니다....`);
   window.crocodileBirdActive = true;
   chrome.storage.local.get('step', data => {
     window.crocodileBirdStep = data.step || 1;
@@ -39,50 +26,56 @@ function walkTextNodes() {
   // 함수 시작 로그
   console.log('[Content] content.js loaded');
 
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
 
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const nodes = [];
+  window.crocodileBirdActive = window.crocodileBirdActive || false;
+  window.crocodileBirdStep = window.crocodileBirdStep || 1;
 
-    window.crocodileBirdActive = window.crocodileBirdActive || false;
-    window.crocodileBirdStep = window.crocodileBirdStep || 1;
-
-    // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
-    // TreeWalker은 DOM 트리 구조를 순회
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      if (node.nodeValue.trim()) {
-        nodes.push(node);
-      }
-
-      console.log(`text 추출 중: ${node.nodeValue}`);
+  // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
+  // TreeWalker은 DOM 트리 구조를 순회
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.nodeValue.trim()) {
+      nodes.push(node);
     }
+    console.log(`text 추출 중: ${node.nodeValue}`);
+  }
 
-    // 오버레이 삽입( 대기시간 )
-    showOverlay();
+  // 오버레이 삽입( 대기시간 )
+  showOverlay();
 
-    // 노드 순회 -> controller로 요청 보내서 텍스트 변경
-    const promises = nodes.map(node => {
-      return new Promise(resolve => {
-        chrome.runtime.sendMessage({ type: 'crocodile-bird-clean', text: node.nodeValue }, res => {
-          if (res?.cleaned) {
-            node.nodeValue = res.cleaned;
-            console.log('순화 되었습니다. 순환된 노드: ', node.nodeValue);
-          }
-          else {
-            console.log('node가 비어있거나 API 응답 없음');
-          }
-          resolve();
-        });
+  // 노드 순회 -> controller로 요청 보내서 텍스트 변경
+  // 메시지 전송 함수 따로 분리
+  function sendCleanRequest(text) {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'crocodile-bird-clean', text }, res => {
+        resolve(res?.cleaned || null);
       });
     });
+  }
 
-    Promise.all(promises)
-    .then(() => {
-      removeOverlay();
-      console.log(`${nodes.length}건의 순화 완료`);
-    });
+  // 비동기 순화 처리
+  async function cleanNodes(nodes) {
+    for (const node of nodes) {
+      const cleaned = await sendCleanRequest(node.nodeValue);
+      if (cleaned) {
+        node.nodeValue = cleaned;
+        console.log('순화된 노드:', node.nodeValue);
+      } else {
+        console.log('node가 비어있거나 API 응답 없음');
+      }
+    }
+
+    removeOverlay();
+    console.log(`총 ${nodes.length}건의 순화 완료`);
+  }
+
+  // 순화 처리 - 오버레이 제거까지
+  cleanNodes(nodes);
 }
 
+// 오버레이 설정 및 제거
 // 다크모드 적용 필요(추후에)
 function showOverlay() {
     const el = document.createElement('div');
@@ -134,7 +127,6 @@ function showOverlay() {
     el.appendChild(text);
     document.body.appendChild(el);
   }
-  
 function removeOverlay() {
     const el = document.getElementById('crocodile-bird-overlay');
 

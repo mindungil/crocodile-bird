@@ -1,6 +1,7 @@
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
 
+// DOM 트리가 완성되었을 때 실행 -> 한 번만 실행됨
 document.addEventListener('DOMContentLoaded', () => {
   const toggleBtn = document.getElementById('toggleBird');
   const stepContainer = document.getElementById('stepButtons');
@@ -50,60 +51,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // 악어새 호출 및 해제 버튼
   toggleBtn.addEventListener('click', () => {
-  chrome.storage.local.get('crocodileBirdOn', data => {
-    const newState = !data.crocodileBirdOn;
+    chrome.storage.local.get('crocodileBirdOn', data => {
+      const newState = !data.crocodileBirdOn;
 
-    chrome.storage.local.set({ crocodileBirdOn: newState }, () => {
-      updateUI(newState);
-
-      // 모든 탭에 메시지를 전송
-      chrome.tabs.query({}, tabs => {
-        tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_BIRD" }, res => {
-            if (chrome.runtime.lastError) {
-              console.warn(`탭 ${tab.id} - 메시지 실패: ${chrome.runtime.lastError.message}`);
-            } else {
-              console.log(`탭 ${tab.id} - 메시지 성공`);
-            }
+      chrome.storage.local.set({ crocodileBirdOn: newState }, () => {
+        updateUI(newState);
+        
+        // 악어새 호출인 경우
+        if(newState == true) {
+          chrome.tabs.query({}, tabs => {
+            tabs.forEach(tab => {
+              chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_BIRD_ON" }, res => {
+                if (chrome.runtime.lastError) {
+                  console.warn(`탭 ${tab.id} - 메시지 실패: ${chrome.runtime.lastError.message}`);
+                } else {
+                  console.log(`탭 ${tab.id} - 메시지 성공`);
+                }
+                });
+              }
+            );
           });
-        });
+        }
+        // 악어새 해제인 경우
+        else {
+          // 모든 탭에 호출 및 해제 메시지를 전송
+          chrome.tabs.query({}, tabs => {
+            tabs.forEach(tab => {
+              chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_BIRD_OFF" }, res => {
+                if (chrome.runtime.lastError) {
+                  console.warn(`탭 ${tab.id} - 메시지 실패: ${chrome.runtime.lastError.message}`);
+                } else {
+                  console.log(`탭 ${tab.id} - 메시지 성공`);
+                }
+                });
+              }
+            );
+          });
+        }
+
+
       });
     });
-  });
-});
-
-
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-
-  chrome.storage.local.get(['apiKey'], data=> {
-    if (data.apiKey) {
-      apiKeyInput.value = data.apiKey;
-    }
-  });
-
-  saveApiKeyBtn.addEventListener('click', () => {
-    const key = apiKeyInput.value.trim();
-    if (!key) {
-      Toastify({
-        text: "❗ API 키를 입력하세요.",
-        duration: 2000,
-        gravity: "top",
-        position: "center",
-        // backgroundColor: "#f44336", // 빨간색
-    }).showToast();
-      return;
-    }
-
-    chrome.storage.local.set({apiKey: key }, () => {
-      Toastify({
-        text: "✅ API 키가 저장되었습니다.",
-        duration: 2000,
-        gravity: "top",
-        position: "center",
-        // backgroundColor: "#3CAF50", 
-    }).showToast();
-    })
-  })
+  } 
+);
 });
