@@ -1,15 +1,17 @@
 import express from 'express'
 import axios from 'axios';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const app = express.Router();
 
 app.post('/cleanText', async (req, res) => {
     try {
         const cleanText = await cleanText_gpt(req);
-        res.status(200).json(cleanText);
+        return res.status(200).json(cleanText);
     } catch(err) {
         console.error(err);
-        res.status(500).json({error: 'Internal Server Error'});
+        return res.status(500).json({error: 'Internal Server Error'});
     }
 });
 
@@ -23,22 +25,23 @@ async function cleanText_gpt(msg) {
                 messages
             },
             {
-                header: {
-                    Authorization: `Bearer: ${OPENAI_API_KEY}`,
+                headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 }
             }
         );
 
-        if (!res.ok) {
-            throw new Error("HTTP 에러, status: ", res.status);
-        }
         console.log(`Text 처리 성공`);
-        return res.data.choices?.[0]?.message?.content?.trim() || text;
+        return { cleaned: res.data.choices?.[0]?.message?.content?.trim() || null };
     } catch(err) {
         // 기본적인 예외 처리 -> 기본 텍스트 반환
-        console.error(`API 호출 실패: `, err);
-        return text;
+          console.error('OpenAI 호출 실패:', {
+            message: err.message,
+            status: err.response?.status,
+            data: err.response?.data
+        });
+        return {cleaned: null};
     }
 };
 

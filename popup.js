@@ -1,5 +1,8 @@
-import Toastify from 'toastify-js';
-import 'toastify-js/src/toastify.css';
+// // content.js 중복 주입 방지
+// if(!window.__crocodileBirdBot__) {
+//   window.__crocodileBirdBot__ = true;
+//   console.log('corocodileBridBot__ 변수 설정 완료');
+// }
 
 // DOM 트리가 완성되었을 때 실행 -> 한 번만 실행됨
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,21 +11,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepButtons = document.querySelectorAll('.step-btn');
 
   // 초기 상태
-  chrome.storage.local.get(['crocodileBirdOn', 'step'], data => {
+  chrome.storage.local.get(['crocodileBirdOn', 'crocodileBirdStep'], data => {
     if(data.crocodileBirdOn === undefined) {
       chrome.storage.local.set({ crocodileBirdOn: false }, () => {
         console.log('기본값 crocodileBirdOn: "false" 설정됨');
       });
     }
      
-    if(data.step === undefined) {
+    if(data.crocodileBirdStep === undefined) {
       // 초기값은 2단계 설정
-      chrome.storage.local.set({ step: 2 }, () => {
+      chrome.storage.local.set({ crocodileBirdStep: 2 }, () => {
         console.log('기본값 step: 2 단계로 설정');
       });
     }
 
-    const step = data.step || 1;
+    const step = data.crocodileBirdStep || 2;
     highlightSelected(step);
     updateUI(data.crocodileBirdOn);
   });
@@ -44,10 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.set({ step: selectedStep });
       highlightSelected(selectedStep);
 
-      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        // 단계를 메시지로 전달
-        chrome.tabs.sendMessage(tabs[0].id, { type: "SET_STEP", step: selectedStep});
-      });
+      chrome.tabs.query({}, tabs => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { type: "SET_STEP", step: selectedStep }, response => {
+            if (chrome.runtime.lastError) {
+              return;
+            }
+          })
+        })
+      }
+      );
     });
   });
 
@@ -91,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
 
-
+        return true;
       });
     });
   } 
