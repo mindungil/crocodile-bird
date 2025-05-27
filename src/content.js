@@ -84,7 +84,7 @@ async function walkTextNodes() {
 
   // 노드 순회 -> controller로 요청 보내서 텍스트 변경
   // 메시지 전송 함수 따로 분리
-  function sendCleanRequest(text, num) {
+  async function sendCleanRequest(text, num) {
     console.log(`sendCleanRequest 함수 호출`);
     return new Promise(resolve => {
       chrome.runtime.sendMessage({ type: 'crocodile-bird-clean', text, num }, res => {
