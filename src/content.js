@@ -5,17 +5,6 @@
  * 3. crocodileBirdActive 초기화
  * 
  */
-
-// 열려있는 탭애 content.js 주입
-// chrome.tabs.query({}, tabs => {
-//   tabs.forEach(tab => {
-//     chrome.scripting.executeScript( {
-//       target: { tabId: tab.id },
-//       files: ['content.js']
-//     })
-//   })
-// })
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "TOGGLE_BIRD_OFF") {
     window.crocodileBirdActive = false;
@@ -173,16 +162,21 @@ function showOverlay() {
   const wrapper = document.createElement('div');
   Object.assign(wrapper.style, {
     display: 'flex',
+    flexDirection: 'column', // 🔁 세로 정렬로 변경
     alignItems: 'center',
     gap: '16px', // 이미지와 텍스트 간 간격
     fontSize: '20px',
     color: '#000'
   });
 
+  // 텍스트
+  const loadingText = document.createElement('span');
+  loadingText.textContent = `순화 작업 중...\n 악어새가 열일하는 중입니다`;
+
   // 이미지 엘리먼트
   const img = document.createElement('img');
-  img.style.width = '45vw';   // ⬅️ 여기 크기 조절
-  img.style.height = '35vh';
+  img.style.width = '65vw';   // ⬅️ 여기 크기 조절
+  img.style.height = '45vh';
   img.style.display = 'block';
 
   // 이미지 프레임들
@@ -197,10 +191,6 @@ function showOverlay() {
     chrome.runtime.getURL('icons/7.png'),
   ];
   let currentFrame = 0;
-
-  // 텍스트
-  const loadingText = document.createElement('span');
-  loadingText.textContent = '악어새가 페이지를 검사하는 중입니다';
 
   // 애니메이션 루프
   const intervalId = setInterval(() => {
