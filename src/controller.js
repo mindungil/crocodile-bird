@@ -47,8 +47,12 @@ async function cleanText(text, num) {
                     model: 'gpt-4o',
                     messages: [
                         {
+                            role: 'system',
+                            content: message
+                        },
+                        {
                             role: 'user',
-                            content: `${message}, 변경해야 할 텍스트: ${text}`
+                            content: text
                         }
                     ],
                     num: num
@@ -59,11 +63,11 @@ async function cleanText(text, num) {
             throw new Error(`서버 응답 실패: ${res.status}`);
         }
 
-        console.log(`서버 응답 상태: ${res.status}`);
         const data = await res.json();
         console.log('서버 응답 데이터:', data);
         return data.cleaned;
     } catch(err) {
         console.error(err);
+        return text;
     }
 }

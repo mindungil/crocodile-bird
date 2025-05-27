@@ -64,23 +64,55 @@ async function walkTextNodes() {
 
   // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
   // TreeWalker은 DOM 트리 구조를 순회
+
+  let i = 0;
   while (walker.nextNode()) {
     const node = walker.currentNode;
     const tag = node.parentNode?.nodeName;
 
     // 필요 없는 text 제외
-    if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT"].includes(tag)) continue;
-
-    if (node.nodeValue.trim()) {
-      nodes.push(node);
+    if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "NAV", "FIGCAPTION", "HEADER", "FOOTER", "FORM", "INPUT","BUTTON","SELECT","LABEL"].includes(tag) || !node.nodeValue.trim()) {
+      continue;
     }
-  }
 
-  console.log(`추출 된 텍스트 배열: ${nodes.map(n=>n.nodeValue)}`);
+
+    nodes.push(node);
+    i++;
+  }
 
   console.log('오버레이가 시작됩니다.')
   // 오버레이 삽입( 대기시간 )
   showOverlay();
+
+  const markedInput = await buildMarkedInput(nodes);
+
+  // 순화 처리 - 오버레이 제거까지
+  await cleanNodes(nodes, markedInput);
+  
+  // nodes 배열 -> [NODE_i] mesage 형식으로 구조화
+  function buildMarkedInput(group) {
+    return group
+    .map((node, i) => `[NODE_${i}] ${node.nodeValue.trim()}`)
+    .join("\n");
+  }
+
+  // 원래의 nodes 배열에 값 대입
+  function parseMarkedOutput(gptResponse, count) {
+    const results = new Array(count).fill("");
+
+    const regex = /\[NODE_(\d+)\]\s*([\s\S]*?)(?=\[NODE_\d+\]|\s*$)/g;
+    let match;
+
+    while ((match = regex.exec(gptResponse)) !== null) {
+      const idx = parseInt(match[1], 10);
+      const text = match[2].trim();
+      if (idx < count) {
+        results[idx] = text;
+      }
+    }
+    return results;
+  }
+
 
   // 노드 순회 -> controller로 요청 보내서 텍스트 변경
   // 메시지 전송 함수 따로 분리
@@ -94,24 +126,26 @@ async function walkTextNodes() {
   }
 
   // 비동기 순화 처리
-  async function cleanNodes(nodes) {
+  async function cleanNodes(nodes, markedInput) {
     const num = window.crocodileBirdStep;
-    for (const node of nodes) {
-      const cleaned = await sendCleanRequest(node.nodeValue, num);
-      if (cleaned) {
-        node.nodeValue = cleaned;
-        console.log('순화된 노드:', node.nodeValue);
-      } else {
-        console.log('node가 비어있거나 API 응답 없음');
-      }
+
+    const cleaned = await sendCleanRequest(markedInput, num);
+    
+    if(!cleaned) {
+      console.log('API 응답이 비어있음');
+      return;
     }
+    
+    const parsed = parseMarkedOutput(cleaned, nodes.length);
+
+    // 입력 받은 배열을 다시 적용
+    nodes.forEach((node, i) => {
+      node.nodeValue = parsed[i] || node.nodeValue;
+    })
 
     removeOverlay();
     console.log(`총 ${nodes.length}건의 순화 완료`);
   }
-
-  // 순화 처리 - 오버레이 제거까지
-  await cleanNodes(nodes);
 }
 
 // 오버레이 설정 및 제거
@@ -121,12 +155,37 @@ function showOverlay() {
   const el = document.createElement('div');
   el.id = 'crocodile-bird-overlay';
 
-  // 이미지 엘리먼트 생성
-  const img = document.createElement('img');
-  img.style.width = '32px';
-  img.style.height = '32px';
-  img.style.marginRight = '8px';
+  // 오버레이 전체 스타일
+  Object.assign(el.style, {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    background: '#fff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2147483647
+  });
 
+  // 내부 콘텐츠 래퍼
+  const wrapper = document.createElement('div');
+  Object.assign(wrapper.style, {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px', // 이미지와 텍스트 간 간격
+    fontSize: '20px',
+    color: '#000'
+  });
+
+  // 이미지 엘리먼트
+  const img = document.createElement('img');
+  img.style.width = '45vw';   // ⬅️ 여기 크기 조절
+  img.style.height = '35vh';
+  img.style.display = 'block';
+
+  // 이미지 프레임들
   const frames = [
     chrome.runtime.getURL('icons/0.png'),
     chrome.runtime.getURL('icons/1.png'),
@@ -138,21 +197,10 @@ function showOverlay() {
     chrome.runtime.getURL('icons/7.png'),
   ];
   let currentFrame = 0;
+
+  // 텍스트
   const loadingText = document.createElement('span');
   loadingText.textContent = '악어새가 페이지를 검사하는 중입니다';
-   // 오버레이 스타일
-  Object.assign(el.style, {
-    position: 'fixed',
-    top: '10px',
-    right: '10px',
-    background: '#000',
-    color: '#fff',
-    padding: '10px 14px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    zIndex: 2147483647
-  });
 
   // 애니메이션 루프
   const intervalId = setInterval(() => {
@@ -160,14 +208,15 @@ function showOverlay() {
     currentFrame = (currentFrame + 1) % frames.length;
   }, 400);
 
-  // 오버레이 제거 시 interval 해제도 필요하므로 저장
   el.dataset.intervalId = intervalId;
 
   // 조립
-  el.appendChild(img);
-  el.appendChild(loadingText);
+  wrapper.appendChild(img);
+  wrapper.appendChild(loadingText);
+  el.appendChild(wrapper);
   document.body.appendChild(el);
- }
+}
+
 function removeOverlay() {
   console.log('오버레이가 화면에서 제거되는 중 입니다.');
   const el = document.getElementById('crocodile-bird-overlay');
