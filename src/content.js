@@ -60,10 +60,11 @@ async function walkTextNodes() {
     const tag = node.parentNode?.nodeName;
 
     // 필요 없는 text 제외
-    if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "NAV", "FIGCAPTION", "HEADER", "FOOTER", "FORM", "INPUT","BUTTON","SELECT","LABEL"].includes(tag) || !node.nodeValue.trim()) {
+    if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "NAV", 
+      "FIGCAPTION", "HEADER", "FOOTER", "FORM", "INPUT",
+      "BUTTON","SELECT","LABEL", "OBJECT", "PARAM"].includes(tag) || !node.nodeValue || !node.nodeValue.trim()) {
       continue;
     }
-
 
     nodes.push(node);
     i++;
@@ -170,8 +171,7 @@ function showOverlay() {
   });
 
   // 텍스트
-  const loadingText = document.createElement('span');
-  loadingText.textContent = `순화 작업 중...\n 악어새가 열일하는 중입니다`;
+  let loadingStory = document.createElement('span');
 
   // 이미지 엘리먼트
   const img = document.createElement('img');
@@ -190,19 +190,38 @@ function showOverlay() {
     chrome.runtime.getURL('icons/6.png'),
     chrome.runtime.getURL('icons/7.png'),
   ];
-  let currentFrame = 0;
 
+  const storyBoard = [
+    '옛날, 나일강 근처의 밀림에는 무서운 악어 한 마리가 살고 있었습니다.',
+    '이 악어는 육지와 강을 오가며 사냥을 즐겼지만, 식사 후엔 입 안에 고기 찌꺼기와 이물질이 끼어 항상 불편했습니다.',
+    '어느 날, 작은 새 한 마리가 악어가 입을 벌린 채 햇볕을 쬐고 있는 것을 보고 다가왔습니다.',
+    '새는 용감하게 악어의 입속으로 들어가 고기 찌꺼기들을 쪼아 먹었습니다.',
+    '악어는 새를 해치지 않고 오히려 가만히 있었죠.',
+    '그날 이후로, 이 새는 악어의 이빨을 청소해주고, 악어는 새가 안전하게 입 안에서 먹이를 찾을 수 있도록 도와주었습니다.',
+    '둘은 서로에게 이득이 되는 관계, 즉 ‘공생 관계’를 맺게 되었습니다.',
+    '따라서 사람들은 이 새를 ‘악어새’라고 부르게 되었습니다.',
+    '오늘날까지도 “악어와 악어새처럼 서로 돕는 관계”는 협력의 상징으로 종종 비유됩니다.'
+  ]
+
+  let currentImageFrame = 0;
+  let currentStoryFrame = 0;
+  
   // 애니메이션 루프
-  const intervalId = setInterval(() => {
-    img.src = frames[currentFrame];
-    currentFrame = (currentFrame + 1) % frames.length;
+  const intervalIdImage = setInterval(() => {
+    img.src = frames[currentImageFrame];
+    currentImageFrame = (currentImageFrame + 1) % frames.length;
   }, 400);
 
-  el.dataset.intervalId = intervalId;
+  const intervalIdText = setInterval(() => {
+    loadingStory.textContent = storyBoard[currentStoryFrame];
+    currentStoryFrame = (currentStoryFrame + 1) % frames.length;
+  }, 2500);
+
+  el.dataset.intervalId = intervalIdImagel;
 
   // 조립
   wrapper.appendChild(img);
-  wrapper.appendChild(loadingText);
+  wrapper.appendChild(loadingStory);
   el.appendChild(wrapper);
   document.body.appendChild(el);
 }
@@ -226,8 +245,9 @@ function isInformationalPage() {
   const pathname = location.pathname;
 
   const publicDomains = [
-    'go.kr', 'korea.kr', 'gouv.fr', 'gov.uk', 'who.int', 'un.org',
-    'openai.com', 'chat.openai.com'
+    'go.kr', 'korea.kr','.ac.kr', 'gouv.fr','.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
+    'openai.com', 'chat.openai.com', 'github.com', 'chrome://',
+    'notion'
   ];
 
   const keywordPaths = ['/policy', '/static', '/notice', '/faq', '/help', '/support'];

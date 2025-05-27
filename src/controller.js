@@ -3,12 +3,11 @@ import {level_1, level_2, level_3} from './utils/prompts';
 // content.js 로 부터 온 요청 관리
 // clean 명령 뿐 아니라 다른 명령도 구현해야 함(예시 - remove 등)
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log('서버와의 통신 시작22');
     if (msg.type == 'crocodile-bird-clean') {
 
         (async () => {
             try {
-                console.log('서버와의 통신 시작11');
+                console.log('서버와의 통신 시작');
                 const cleaned = await cleanText(msg.text, msg.num);
                 sendResponse({cleaned});
             } catch(err) {
