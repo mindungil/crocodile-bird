@@ -201,7 +201,7 @@ function showOverlay() {
     '둘은 서로에게 이득이 되는 관계, 즉 ‘공생 관계’를 맺게 되었습니다.',
     '따라서 사람들은 이 새를 ‘악어새’라고 부르게 되었습니다.',
     '오늘날까지도 “악어와 악어새처럼 서로 돕는 관계”는 협력의 상징으로 종종 비유됩니다.'
-  ]
+  ];
 
   let currentImageFrame = 0;
   let currentStoryFrame = 0;
@@ -245,12 +245,32 @@ function isInformationalPage() {
   const pathname = location.pathname;
 
   const publicDomains = [
-    'go.kr', 'korea.kr','.ac.kr', 'gouv.fr','.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-    'openai.com', 'chat.openai.com', 'github.com', 'chrome://',
-    'notion'
-  ];
+  'go.kr', 'korea.kr','.ac.kr', 'gouv.fr','.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
+  'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion',
 
-  const keywordPaths = ['/policy', '/static', '/notice', '/faq', '/help', '/support'];
+  // 정보성 문서/도움말
+  'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
+  'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
+  'readthedocs.io', 'npmjs.com', 'pypi.org', 'docs.google.com',
+  'drive.google.com',
+
+  // 이메일 서비스 도메인
+  'mail.google.com',      // Gmail
+  'outlook.live.com',     // Outlook
+  'outlook.office.com',   // Outlook (기업용)
+  'mail.naver.com',       // 네이버 메일
+  'mail.daum.net',        // 다음 메일
+  'mail.yahoo.com',       // 야후 메일
+  'proton.me',            // Proton Mail
+  'icloud.com',           // Apple iCloud Mail
+];
+
+  const keywordPaths = [
+  '/policy', '/static', '/notice', '/faq', '/help', '/support',
+  '/terms', '/privacy', '/about', '/legal', '/copyright',
+  '/docs', '/document', '/manual', '/guide', '/getting-started',
+  '/license', '/disclaimer', '/robots.txt', '/sitemap',
+  ];
 
   const isPublicDomain = publicDomains.some(d => domain.endsWith(d));
   const isStaticPath = keywordPaths.some(p => pathname.includes(p));
