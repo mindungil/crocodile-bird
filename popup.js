@@ -13,13 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
      
     if(data.crocodileBirdStep === undefined) {
-      // 초기값은 2단계 설정
-      chrome.storage.local.set({ crocodileBirdStep: 2 }, () => {
-        console.log('기본값 step: 2 단계로 설정');
+      // 초기값은 3단계 설정
+      chrome.storage.local.set({ crocodileBirdStep: 3 }, () => {
+        console.log('기본값 step: 3 단계로 설정');
       });
     }
 
-    const step = data.crocodileBirdStep || 2;
+    const step = data.crocodileBirdStep || 3;
     highlightSelected(step);
     updateUI(data.crocodileBirdOn);
   });

@@ -1,10 +1,3 @@
-/**
- * 초기화 목록
- * 1. window.__crocodileBirdBot__ 으로 content.js 주입 확인
- * 2. 단계 초기화(popup에서의 초기화는 pop ui만 관련)
- * 3. crocodileBirdActive 초기화
- * 
- */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "TOGGLE_BIRD_OFF") {
     window.crocodileBirdActive = false;
@@ -135,6 +128,8 @@ async function walkTextNodes() {
 
     removeOverlay();
     console.log(`총 ${nodes.length}건의 순화 완료`);
+
+
   }
 }
 
