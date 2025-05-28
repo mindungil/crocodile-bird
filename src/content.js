@@ -20,12 +20,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
-  if(window.crocodileBirdStep == undefined) window.crocodileBirdStep = 2;
+  if(window.crocodileBirdStep == undefined) window.crocodileBirdStep = 3;
   console.log(`악어새 봇이 ${window.crocodileBirdStep}단계로 돌아가는 중 입니다....`);
 
   window.crocodileBirdActive = true;
   chrome.storage.local.get('step', data => {
-    window.crocodileBirdStep = data.step || 1;
+    window.crocodileBirdStep = data.step || 3;
     walkTextNodes();
     sendResponse({ok: true});
   });
@@ -55,10 +55,25 @@ async function walkTextNodes() {
     // 필요 없는 text 제외
     if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "NAV", 
       "FIGCAPTION", "HEADER", "FOOTER", "FORM", "INPUT",
-      "BUTTON","SELECT","LABEL", "OBJECT", "PARAM"].includes(tag) || !node.nodeValue || !node.nodeValue.trim()) {
+      "BUTTON","SELECT","LABEL", "OBJECT", "PARAM", "TIME"].includes(tag) || !node.nodeValue || !node.nodeValue.trim()) {
       continue;
     }
 
+    // class에 like, share 등 포함된 경우 제외
+    if ((() => {
+      const checkClass = node.parentNode;
+      if (!checkClass) return false;
+
+      const classString = typeof checkClass.className === 'string'
+        ? checkClass.className
+        : Array.from(checkClass.classList || []).join(' ');
+
+      // 정확한 단어 기준 필터 -> 정규표현식
+      return classFilter(classString);
+    })()) {
+      continue;
+    }
+    
     nodes.push(node);
     i++;
   }
@@ -128,8 +143,6 @@ async function walkTextNodes() {
 
     removeOverlay();
     console.log(`총 ${nodes.length}건의 순화 완료`);
-
-
   }
 }
 
@@ -157,7 +170,7 @@ function showOverlay() {
   // 내부 콘텐츠 래퍼
   const wrapper = document.createElement('div');
   Object.assign(wrapper.style, {
-    display: 'flex',
+    display: 'relative',
     flexDirection: 'column', // 🔁 세로 정렬로 변경
     alignItems: 'center',
     gap: '16px', // 이미지와 텍스트 간 간격
@@ -167,6 +180,26 @@ function showOverlay() {
 
   // 텍스트
   let loadingStory = document.createElement('span');
+  loadingStory.style.cssText = `
+  position: absolute;
+  bottom: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 2vw; /* 반응형 텍스트 크기 */
+  padding: 1vh 2vw;
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 9999;
+  pointer-events: none;
+  font-family: sans-serif;
+  white-space: nowrap;      
+  overflow: hidden;         
+  text-overflow: ellipsis;  
+  max-width: 90vw;          
+`;
 
   // 이미지 엘리먼트
   const img = document.createElement('img');
@@ -188,11 +221,13 @@ function showOverlay() {
 
   const storyBoard = [
     '옛날, 나일강 근처의 밀림에는 무서운 악어 한 마리가 살고 있었습니다.',
-    '이 악어는 육지와 강을 오가며 사냥을 즐겼지만, 식사 후엔 입 안에 고기 찌꺼기와 이물질이 끼어 항상 불편했습니다.',
+    '이 악어는 육지와 강을 오가며 사냥을 즐겼습니다.', 
+    '악어는 식사 후엔 입 안에 고기 찌꺼기와 이물질이 끼어 항상 불편했습니다.',
     '어느 날, 작은 새 한 마리가 악어가 입을 벌린 채 햇볕을 쬐고 있는 것을 보고 다가왔습니다.',
     '새는 용감하게 악어의 입속으로 들어가 고기 찌꺼기들을 쪼아 먹었습니다.',
     '악어는 새를 해치지 않고 오히려 가만히 있었죠.',
-    '그날 이후로, 이 새는 악어의 이빨을 청소해주고, 악어는 새가 안전하게 입 안에서 먹이를 찾을 수 있도록 도와주었습니다.',
+    '그날 이후로, 이 새는 악어의 이빨을 매일 청소해줬습니다.', 
+    '악어는 새가 안전하게 입 안에서 먹이를 찾을 수 있도록 도와주었습니다.',
     '둘은 서로에게 이득이 되는 관계, 즉 ‘공생 관계’를 맺게 되었습니다.',
     '따라서 사람들은 이 새를 ‘악어새’라고 부르게 되었습니다.',
     '오늘날까지도 “악어와 악어새처럼 서로 돕는 관계”는 협력의 상징으로 종종 비유됩니다.'
@@ -209,11 +244,15 @@ function showOverlay() {
 
   const intervalIdText = setInterval(() => {
     loadingStory.textContent = storyBoard[currentStoryFrame];
-    currentStoryFrame = (currentStoryFrame + 1) % frames.length;
-  }, 2500);
+    loadingStory.style.opacity = '1';
+    setTimeout(() => {
+      loadingStory.style.opacity = '0';
+    }, 3000); // 부드러운 페이드아웃
+    currentStoryFrame = (currentStoryFrame + 1) % storyBoard.length;
+  }, 3500);
 
-  el.dataset.intervalId = intervalIdImagel;
-
+  el.dataset.intervalIdImage = intervalIdImage;
+  el.dataset.intervalIdText = intervalIdText;
   // 조립
   wrapper.appendChild(img);
   wrapper.appendChild(loadingStory);
@@ -228,8 +267,8 @@ function removeOverlay() {
   // el 오버레이의 NULL 제거 방지
   if (el) {
       // 동작도 제거해야함
-      const id = parseInt(el.dataset.intervalId);
-      clearInterval(el.dataset.intervalId);
+      clearInterval(parseInt(el.dataset.intervalIdImage));
+      clearInterval(parseInt(el.dataset.intervalIdText));
       el.remove();
   }
 }
@@ -277,4 +316,25 @@ function isInformationalPage() {
   if (!hasFormElements && !hasUserContent) return true; // 상호작용 없음
 
   return false; // 사용자 개입 가능성 높음
+}
+
+async function saveToSession() {
+  try {
+
+  } catch(err) {
+    console.err(err);
+  }
+}
+
+// 클래스에 특정 명(ex. like) 가 독립적으로 들어감을 구분
+function classFilter(classString) {
+  const keywords = [
+    "like", "share", "recommend", "follow", "subscribe", "vote",
+    "save", "bookmark", "meta", "sharing", "author",
+    "likes", "liked", "likers", "liker", "link"
+  ];
+
+  const tokens = classString.toLowerCase().split(/[-_.:]/); // 클래스에서 구분자로 나눔
+
+  return tokens.some(token => keywords.includes(token));
 }
