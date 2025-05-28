@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import inject from '@rollup/plugin-inject';
 
 export default defineConfig({
+  plugins: [
+    inject({
+      process: 'process/browser'
+    })
+  ],
   build: {
     rollupOptions: {
       input: {

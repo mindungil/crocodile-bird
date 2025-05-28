@@ -2,17 +2,19 @@ import {level_1, level_2, level_3} from './utils/prompts';
 
 // content.js 로 부터 온 요청 관리
 // clean 명령 뿐 아니라 다른 명령도 구현해야 함(예시 - remove 등)
-chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
-    console.log('서버와의 통신 시작22');
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type == 'crocodile-bird-clean') {
-        try {
-            console.log('서버와의 통신 시작11');
-            const cleaned = await cleanText(msg.text, msg.num);
-            sendResponse({cleaned});
-        } catch(err) {
-            console.error(`clean Text 실패: ${err}`);
-            sendResponse({cleaned: msg.text});
-        }
+
+        (async () => {
+            try {
+                console.log('서버와의 통신 시작');
+                const cleaned = await cleanText(msg.text, msg.num);
+                sendResponse({cleaned});
+            } catch(err) {
+                console.error(`clean Text 실패: ${err}`);
+                sendResponse({cleaned: msg.text});
+            }
+        })();
 
         return true;
     }
@@ -41,11 +43,15 @@ async function cleanText(text, num) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
+                            role: 'system',
+                            content: message
+                        },
+                        {
                             role: 'user',
-                            content: `${message}, 변경해야 할 텍스트: ${text}`
+                            content: text
                         }
                     ],
                     num: num
@@ -56,11 +62,11 @@ async function cleanText(text, num) {
             throw new Error(`서버 응답 실패: ${res.status}`);
         }
 
-        console.log(`서버 응답 상태: ${res.status}`);
         const data = await res.json();
         console.log('서버 응답 데이터:', data);
         return data.cleaned;
     } catch(err) {
         console.error(err);
+        return text;
     }
 }

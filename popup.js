@@ -1,9 +1,3 @@
-// // content.js 중복 주입 방지
-// if(!window.__crocodileBirdBot__) {
-//   window.__crocodileBirdBot__ = true;
-//   console.log('corocodileBridBot__ 변수 설정 완료');
-// }
-
 // DOM 트리가 완성되었을 때 실행 -> 한 번만 실행됨
 document.addEventListener('DOMContentLoaded', () => {
   const toggleBtn = document.getElementById('toggleBird');
@@ -19,13 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
      
     if(data.crocodileBirdStep === undefined) {
-      // 초기값은 2단계 설정
-      chrome.storage.local.set({ crocodileBirdStep: 2 }, () => {
-        console.log('기본값 step: 2 단계로 설정');
+      // 초기값은 3단계 설정
+      chrome.storage.local.set({ crocodileBirdStep: 3 }, () => {
+        console.log('기본값 step: 3 단계로 설정');
       });
     }
 
-    const step = data.crocodileBirdStep || 2;
+    const step = data.crocodileBirdStep || 3;
     highlightSelected(step);
     updateUI(data.crocodileBirdOn);
   });
@@ -41,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // content.js가 주입된 모든 tab에 메시지 전달 -> 작동 유도
   stepButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const selectedStep = parseInt(btn.dataset.step);
@@ -74,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.forEach(tab => {
               chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_BIRD_ON" }, res => {
                 if (chrome.runtime.lastError) {
-                  console.warn(`탭 ${tab.id} - 메시지 실패: ${chrome.runtime.lastError.message}`);
+                  console.log('content.js가 주입되지 않은 탭');
+                  return;
                 } else {
                   console.log(`탭 ${tab.id} - 메시지 성공`);
                 }
@@ -90,7 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.forEach(tab => {
               chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_BIRD_OFF" }, res => {
                 if (chrome.runtime.lastError) {
-                  console.warn(`탭 ${tab.id} - 메시지 실패: ${chrome.runtime.lastError.message}`);
+                  console.log('content.js가 주입되지 않은 탭');
+                  return;
                 } else {
                   console.log(`탭 ${tab.id} - 메시지 성공`);
                 }
@@ -99,8 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
           });
         }
-
-        return true;
       });
     });
   } 
