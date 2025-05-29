@@ -4,30 +4,68 @@
   <meta charset="UTF-8" />
   <title>Crocodile-Bird Bot</title>
   <style>
-    body { font-family: sans-serif; padding: 10px; width: 200px; }
+    body {
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      padding: 16px;
+      width: 240px;
+      background: #ffffff;
+      color: #333;
+    }
+
+    h3 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+    }
+
     #toggleBird {
       width: 100%;
-      padding: 10px;
+      padding: 10px 16px;
       font-size: 14px;
-      margin-bottom: 10px;  
-    }
-    .steps {
-    display: none;
-    flex-direction: row;
-    gap: 6px;   
-    }
-    .step-btn {
-      padding: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      background-color: #f0f0f0;
-      border-radius: 4px;
-    }
-    .step-btn.active {
       background-color: #3CAF50;
       color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
       font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    #toggleBird:hover {
+      background-color: #349e46;
+    }
+
+    .steps {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .step-btn {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(to right, #e8f5e9, #f1f8e9);
+      color: #333;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+
+    .step-btn:hover {
+      background: linear-gradient(to right, #c8e6c9, #dcedc8);
+      transform: translateY(-1px);
+    }
+
+    .step-btn.active {
+      background: #3CAF50;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
   </style>
   <script type="module" crossorigin src="/popup.js"></script>
@@ -37,9 +75,8 @@
   <button id="toggleBird">악어새 호출</button>
 
   <div class="steps" id="stepButtons">
-    <button class="step-btn" data-step="1">1단계</button>
-    <button class="step-btn" data-step="2">2단계</button>
-    <button class="step-btn" data-step="3">3단계</button>
+    <button class="step-btn" data-step="1" title="일상적인 표현은 유지하고, 불쾌한 단어만 가볍게 순화합니다.">일반 순화</button>
+    <button class="step-btn" data-step="2" title="직접적이거나 모욕적인 표현을 부드럽게 바꾸고, 감정이 격한 말도 정제합니다.">강한 순화</button>
   </div>
 
 </body>
