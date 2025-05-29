@@ -52,7 +52,7 @@ export const general_level = `
 `;
 
 // 유아와 같은 연령을 대상으로 한 프롬프트
-export const level_3 = `
+export const high_level = `
 당신의 역할은 문장 정제 전문가입니다. 아래의 [NODE_x] 형식 문장들을 유아가 안전하게 읽을 수 있도록 순화해주세요.
 
 🟢 [출력 형식 규칙]

@@ -10,8 +10,8 @@ function checkChromeStorage() {
     }
 
     if (data.crocodileBirdStep === undefined) {
-      setChromeStorage('crocodileBirdStep', 3);
-      console.log('기본 단게가 3단계로 설정됩니다.');
+      setChromeStorage('crocodileBirdStep', 2);
+      console.log('기본 단게가 high_level로 설정됩니다.');
     }
   });
 }
@@ -63,7 +63,7 @@ async function walkTextNodes() {
   console.log('[Content] content.js loaded');
 
   chrome.storage.local.get('crocodileBirdStep', data => {
-    window.crocodileBirdStep = data.crocodileBirdStep || 3;
+    window.crocodileBirdStep = data.crocodileBirdStep || 2;
   })
   const domTarget = checkSearchPage();
   const nodes = [];
