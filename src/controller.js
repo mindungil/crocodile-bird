@@ -30,7 +30,7 @@ async function cleanText(text, num) {
         else {
             console.log('프롬프트 번호 수신 오류');
             // 프롬프트 번호 수신 오류 발생 시 최악의 상황을 방지하여 가장 높은 수준 적용
-            message = prompts.level_3;
+            message = level_3;
         }
         console.log(`message 프롬프트: ${message}`);
 

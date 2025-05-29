@@ -1,4 +1,4 @@
-const r=`
+const l=`
 당신의 역할은 문장 정제 전문가입니다. 아래의 [NODE_x] 형식 문장들을 순화해야 합니다.
 
 🟢 [출력 형식 규칙]
@@ -22,7 +22,7 @@ const r=`
 [NODE_3] 혹시 제 이야기에 끼어들 이유가 있으신가요?
 
 아래 입력을 순화해주세요:
-`,c=`
+`,s=`
 당신의 역할은 문장 정제 전문가입니다. 아래의 [NODE_x] 형식 문장들을 순화해야 합니다.
 
 🟢 [출력 형식 규칙]
@@ -45,7 +45,7 @@ const r=`
 [NODE_3] 혹시 제 이야기에 끼어들 이유가 있으신가요?
 
 아래 입력을 순화해주세요:
-`,s=`
+`,c=`
 당신의 역할은 문장 정제 전문가입니다. 아래의 [NODE_x] 형식 문장들을 유아가 안전하게 읽을 수 있도록 순화해주세요.
 
 🟢 [출력 형식 규칙]
@@ -68,4 +68,4 @@ const r=`
 [NODE_3] 혹시 제 이야기에 끼어들 이유가 있으신가요?
 
 아래 입력을 순화해주세요:
-`;chrome.runtime.onMessage.addListener((t,n,e)=>{if(t.type=="crocodile-bird-clean")return(async()=>{try{console.log("서버와의 통신 시작");const o=await a(t.text,t.num);e({cleaned:o})}catch(o){console.error(`clean Text 실패: ${o}`),e({cleaned:t.text})}})(),!0});async function a(t,n){try{let e;n==1?e=r:n==2?e=c:n==3?e=s:(console.log("프롬프트 번호 수신 오류"),e=prompts.level_3),console.log(`message 프롬프트: ${e}`);const o=await fetch("http://localhost:3000/api/cleanText",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:e},{role:"user",content:t}],num:n})});if(!o.ok)throw new Error(`서버 응답 실패: ${o.status}`);const l=await o.json();return console.log("서버 응답 데이터:",l),l.cleaned}catch(e){return console.error(e),t}}
+`;chrome.runtime.onMessage.addListener((t,n,e)=>{if(t.type=="crocodile-bird-clean")return(async()=>{try{console.log("서버와의 통신 시작");const o=await a(t.text,t.num);e({cleaned:o})}catch(o){console.error(`clean Text 실패: ${o}`),e({cleaned:t.text})}})(),!0});async function a(t,n){try{let e;n==1?e=l:n==2?e=s:(n==3||console.log("프롬프트 번호 수신 오류"),e=c),console.log(`message 프롬프트: ${e}`);const o=await fetch("http://localhost:3000/api/cleanText",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:e},{role:"user",content:t}],num:n})});if(!o.ok)throw new Error(`서버 응답 실패: ${o.status}`);const r=await o.json();return console.log("서버 응답 데이터:",r),r.cleaned}catch(e){return console.error(e),t}}
