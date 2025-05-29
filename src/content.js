@@ -1,6 +1,33 @@
+// 새로운 html 파일이 열리거나, 새로운 탭을 열었을 경우
+function checkChromeStorage() {
+  chrome.storage.local.get(['crocodileBirdOn', 'crocodileBridstep'], data => {
+  if(data.crocodileBirdOn == true) {
+    console.log('새로운 HTML을 처리합니다.');
+    walkTextNodes();
+  }
+  else if(data.crocodileBirdOn === undefined) {
+    setChromeStorage('crocodileBirdOn', false);
+  }
+
+  if(data.crocodileBirdStep === undefined) {
+    setChromeStorage('crocodileBirdStep', 3);
+    console.log('기본 단게가 3단계로 설정됩니다.');
+  }
+});
+}
+
+function setChromeStorage(event, check) {
+  chrome.storage.local.set({[event]: check}, () => {
+    console.log(`${check}로 설정됨`);
+  }
+)}
+
+checkChromeStorage();
+
+// 단계 설정, 악어새 호출 및 해제 메시지 수신
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "TOGGLE_BIRD_OFF") {
-    window.crocodileBirdActive = false;
+    setChromeStorage('crocodileBirdOn', false);
     removeOverlay();
     console.log("악어새 기능 중단");
 
@@ -9,7 +36,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   // 스텝 변경 후 다시 텍스트 처리
   else if (message.type === "SET_STEP"){
-    window.crocodileBirdStep = message.step;
+    setChromeStorage('crocodileBirdStep', message.step);
     console.log(`${message.step} 단계로 설정`);
   }
 
@@ -20,29 +47,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
-  if(window.crocodileBirdStep == undefined) window.crocodileBirdStep = 3;
-  console.log(`악어새 봇이 ${window.crocodileBirdStep}단계로 돌아가는 중 입니다....`);
 
-  window.crocodileBirdActive = true;
-  chrome.storage.local.get('step', data => {
-    window.crocodileBirdStep = data.step || 3;
-    walkTextNodes();
-    sendResponse({ok: true});
-  });
+  walkTextNodes();
+  sendResponse({ok: true});
 
   return true;
 });
 
 // 웹 페이지 내의 텍스트 노드를 모두 탐색, 순회, 응답 텍스트로 대체
+// 메인 기능
 async function walkTextNodes() {
   // 함수 시작 로그
   console.log('[Content] content.js loaded');
+  
+  chrome.storage.get('crocodile', data => {
+    window.crocodileBirdStep = data.crocodileBirdStep || 3;
+  })
 
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const nodes = [];
-
-  window.crocodileBirdActive = window.crocodileBirdActive || false;
-  window.crocodileBirdStep = window.crocodileBirdStep || 3;
 
   // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
   // TreeWalker은 DOM 트리 구조를 순회
@@ -73,7 +96,10 @@ async function walkTextNodes() {
     })()) {
       continue;
     }
-    
+
+    // session storage에 이미 저장된 nodeValue이면 pass
+    if(checkToSession(node)) continue;
+
     nodes.push(node);
     i++;
   }
@@ -143,6 +169,8 @@ async function walkTextNodes() {
 
     removeOverlay();
     console.log(`총 ${nodes.length}건의 순화 완료`);
+
+    saveToSession(nodes, parsed);
   }
 }
 
@@ -280,7 +308,7 @@ function isInformationalPage() {
 
   const publicDomains = [
   'go.kr', 'korea.kr','.ac.kr', 'gouv.fr','.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-  'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion',
+  'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
 
   // 정보성 문서/도움말
   'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
@@ -306,7 +334,7 @@ function isInformationalPage() {
   '/license', '/disclaimer', '/robots.txt', '/sitemap',
   ];
 
-  const isPublicDomain = publicDomains.some(d => domain.endsWith(d));
+  const isPublicDomain = publicDomains.some(d => domain.includes(d));
   const isStaticPath = keywordPaths.some(p => pathname.includes(p));
   const hasFormElements = !!document.querySelector('textarea, input, form');
   const hasUserContent = !!document.querySelector('[class*="comment"], [class*="reply"], [id*="user"]');
@@ -318,11 +346,33 @@ function isInformationalPage() {
   return false; // 사용자 개입 가능성 높음
 }
 
-async function saveToSession() {
+// 세션 스토리지에 임시 저장 -> 효율적인 API 사용
+function saveToSession(nodes, parsed) {
   try {
-
+    nodes.forEach((node, i) => {
+      sessionStorage.setItem(`${node.nodeValue}`, `${parsed[i] || ''}`);
+    })
   } catch(err) {
-    console.err(err);
+    console.error(`세션 스토리지 에러: ${err}`);
+  }
+
+  console.log('세션스토리지에 성공적으로 저장되었습니다.');
+}
+
+function checkToSession(node) {
+  try {
+    const sessionValue = sessionStorage.getItem(node.nodeValue);
+
+    // null 조회 방지
+    if(typeof node.nodeValue !== 'string') return false;
+    if(sessionValue) {
+      node.nodeValue = sessionValue;
+      return true;
+    }
+    return false;
+  } catch(err) {
+    console.log(`세션 스토리지 확인 중 오류: ${err}`);
+    return false;
   }
 }
 
