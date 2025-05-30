@@ -36,15 +36,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(`${message.step} 단계로 설정`);
   }
 
-  // 페이지 처리 필요 없음
-  if (isInformationalPage()) {
-    console.log(`이 페이지는 안전한 페이지 입니다.`);
-    sendResponse({ ok: true });
-    return;
-  }
-
-  
-
   walkTextNodes();
   sendResponse({ ok: true });
 
@@ -57,16 +48,32 @@ async function walkTextNodes() {
   // 함수 시작 로그
   console.log('[Content] content.js loaded');
 
+  // 페이지 처리 필요 없음
+  if (isInformationalPage()) {
+    console.log(`이 페이지는 안전한 페이지 입니다.`);
+    return;
+  }
+
   chrome.storage.local.get('crocodileBirdStep', data => {
     sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
 
+  // null인 경우 탐색 안함
   const domTarget = checkSearchPage();
+  if(!domTarget) return;
+
   const nodes = [];
   if (domTarget == 'daum') {
     console.log('다중 treewalker 호출');
     const walker1 = document.createTreeWalker(document.getElementById('twdColl'), NodeFilter.SHOW_TEXT);
     const walker2 = document.createTreeWalker(document.getElementById('st3Coll'), NodeFilter.SHOW_TEXT);
+    startTreeWalker(nodes, walker1);
+    startTreeWalker(nodes, walker2);
+  }
+  else if(domTarget == 'naver') {
+    console.log('naver 검색 순화중');
+    const walker1 = document.createTreeWalker(document.querySelector('.lst_total'), NodeFilter.SHOW_TEXT);
+    const walker2 = document.createTreeWalker(document.querySelector('.lst_view'), NodeFilter.SHOW_TEXT);
     startTreeWalker(nodes, walker1);
     startTreeWalker(nodes, walker2);
   }
@@ -286,9 +293,16 @@ function isInformationalPage() {
     const domain = location.hostname;
     const pathname = location.pathname;
 
+    if((domain+pathname).includes('www.google.com/search')) {
+      return false;
+    }
+    else if(domain.includes('.google.') || domain.includes('google.')) {
+      return true;
+    }
+
     const publicDomains = [
         'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-        'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so', 'www.naver.com',
+        'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
         'section.blog.naver.com',
 
         // 정보성 문서/도움말
@@ -299,7 +313,6 @@ function isInformationalPage() {
         // 이메일 서비스 도메인
         'outlook.live.com',     // Outlook
         'outlook.office.com',   // Outlook (기업용)
-        'mail.naver.com',       // 네이버 메일
         'mail.daum.net',         // 다음 메일
         'mail.yahoo.com',       // 야후 메일
         'proton.me',             // Proton Mail
@@ -312,7 +325,7 @@ function isInformationalPage() {
     ];
 
     const newsDomains = [
-        'news.naver.com', 'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
+        'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
     ];
 
     const shoppingDomains = [
@@ -417,7 +430,7 @@ function classFilter(classString) {
   const keywords = [
     "like", "share", "recommend", "follow", "subscribe", "vote",
     "save", "bookmark", "meta", "sharing", "author",
-    "likes", "liked", "likers", "liker", "link"
+    "likes", "liked", "likers", "liker"
   ];
 
   const tokens = classString.toLowerCase().split(/[-_.:]/); // 클래스에서 구분자로 나눔
@@ -428,14 +441,22 @@ function classFilter(classString) {
 // 특정한 검색 도메인들에 대해 사전적인 처리 -> api 비용, 속도 향상
 function checkSearchPage() {
   const domain = location.hostname;
+  const path = location.pathname;
 
   if (domain.includes('.google.') || domain.includes('google.')) {
     console.log('google 사이트 입니다.');
     return document.getElementById('rso');
   }
-  else if (domain.includes('search.naver.com')) {
-    console.log('naver 검색 엔진 입니다.');
-    return document.querySelector('.lst_total');
+  else if (domain.includes('.naver.com')) {
+    if(domain.includes('search.naver.com')) {
+      console.log('naver 검색 엔진 입니다.');
+      return 'naver';
+    }
+    else if(path.includes('/article')) {
+      console.log('naver 뉴스 댓글 입니다.');
+      return document.querySelector('.u_cbox_content_wrap');
+    }
+    return;
   }
   else if (domain.includes('search.daum.net')) {
     console.log('daum 검색 엔진 입니다.');
