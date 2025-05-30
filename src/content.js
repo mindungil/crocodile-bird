@@ -43,6 +43,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  
 
   walkTextNodes();
   sendResponse({ ok: true });
@@ -59,6 +60,7 @@ async function walkTextNodes() {
   chrome.storage.local.get('crocodileBirdStep', data => {
     sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
+
   const domTarget = checkSearchPage();
   const nodes = [];
   if (domTarget == 'daum') {
@@ -69,7 +71,6 @@ async function walkTextNodes() {
     startTreeWalker(nodes, walker2);
   }
   else {
-    console.log(domTarget);
     const walker = document.createTreeWalker(domTarget, NodeFilter.SHOW_TEXT);
 
     // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
@@ -83,14 +84,35 @@ async function walkTextNodes() {
     return;
   }
 
-  console.log('오버레이가 시작됩니다.')
+  console.log('오버레이가 시작됩니다. 순화할 node가 존재한다면 실행됨, 고정 시간: 2초')
   // 오버레이 삽입( 대기시간 )
   showOverlay();
+
+  // 개별 노드에 블러처리
+  nodes.forEach(node => {
+    if (node.parentNode) {
+      addBlurToElement(node.parentNode);
+    }
+  });
+
+  // 2초 뒤 전체 화면 오버레이 종료
+  setTimeout(() => {
+    removeOverlay();
+    console.log('전체 오버레이 종료');
+  }, 2000);
 
   const markedInput = await buildMarkedInput(nodes);
 
   // 순화 처리 - 오버레이 제거까지
   await cleanNodes(nodes, markedInput);
+
+  // 개별 노드의 블러처리 종료
+  nodes.forEach(node => {
+    if (node.parentNode) {
+      removeBlurFromElement(node.parentNode);
+    }
+  });
+  console.log('모든 노드 블러 처리 종료');
 }
 
 // [NODE_i] - 인덱스 제거
@@ -129,7 +151,6 @@ async function cleanNodes(nodes, markedInput) {
     node.nodeValue = parsed[i] || node.nodeValue;
   })
 
-  removeOverlay();
   console.log(`총 ${nodes.length}건의 순화 완료`);
 }
 
@@ -262,44 +283,70 @@ function removeOverlay() {
 
 // 프로그램 기능이 필요 없는 사이트 판단
 function isInformationalPage() {
-  const domain = location.hostname;
-  const pathname = location.pathname;
+    const domain = location.hostname;
+    const pathname = location.pathname;
 
-  const publicDomains = [
-    'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-    'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so', 'www.naver.com',
-    'section.blog.naver.com',
+    const publicDomains = [
+        'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
+        'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so', 'www.naver.com',
+        'section.blog.naver.com',
 
-    // 정보성 문서/도움말
-    'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
-    'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
-    'readthedocs.io', 'npmjs.com', 'pypi.org',
+        // 정보성 문서/도움말
+        'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
+        'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
+        'readthedocs.io', 'npmjs.com', 'pypi.org', 'namu.wiki',
 
-    // 이메일 서비스 도메인
-    'outlook.live.com',     // Outlook
-    'outlook.office.com',   // Outlook (기업용)
-    'mail.naver.com',       // 네이버 메일
-    'mail.daum.net',        // 다음 메일
-    'mail.yahoo.com',       // 야후 메일
-    'proton.me',            // Proton Mail
-    'icloud.com',           // Apple iCloud Mail
-  ];
+        // 이메일 서비스 도메인
+        'outlook.live.com',     // Outlook
+        'outlook.office.com',   // Outlook (기업용)
+        'mail.naver.com',       // 네이버 메일
+        'mail.daum.net',         // 다음 메일
+        'mail.yahoo.com',       // 야후 메일
+        'proton.me',             // Proton Mail
+        'icloud.com',           // Apple iCloud Mail'
+    ];
 
-  const keywordPaths = [
-    '/policy', '/static', '/notice', '/faq', '/help', '/support',
-    '/terms', '/privacy', '/about', '/legal', '/copyright',
-    '/docs', '/document', '/manual', '/guide', '/getting-started',
-    '/license', '/disclaimer', '/robots.txt', '/sitemap', '/technology',
-    '/developers',
-  ];
+    const socialMediaDomains = [
+        'www.facebook.com', 'www.instagram.com', 'twitter.com', 'www.youtube.com',
+        'www.linkedin.com', 'm.cafe.naver.com', 'blog.kakaocorp.com'
+    ];
 
-  const isPublicDomain = publicDomains.some(d => domain.includes(d));
-  const isStaticPath = keywordPaths.some(p => pathname.includes(p));
+    const newsDomains = [
+        'news.naver.com', 'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
+    ];
 
-  // 판단 기준
-  if (isPublicDomain || isStaticPath) return true; // 공공성 강함
+    const shoppingDomains = [
+        'www.coupang.com', 'www.amazon.com', 'www.ebay.com'
+    ];
 
-  return false; // 사용자 개입 가능성 높음
+    const communityDomains = [
+        'fmkorea.com', 'ruliweb.com', 'todayhumor.co.kr'
+        // 다른 커뮤니티 도메인 추가
+    ];
+
+    const keywordPaths = [
+        '/policy', '/static', '/notice', '/faq', '/help', '/support',
+        '/terms', '/privacy', '/about', '/legal', '/copyright',
+        '/docs', '/document', '/manual', '/guide', '/getting-started',
+        '/license', '/disclaimer', '/robots.txt', '/sitemap', '/technology',
+        '/developers',
+        '/ads', '/advertisements', '/forum', '/boards', '/comments',
+        '/shop', '/store', '/products', '/member', '/users', '/profile'
+    ];
+
+    const isPublicDomain = publicDomains.some(d => domain.includes(d));
+    const isSocialMedia = socialMediaDomains.some(d => domain.includes(d));
+    const isNewsSite = newsDomains.some(d => domain.includes(d));
+    const isShoppingSite = shoppingDomains.some(d => domain.includes(d));
+    const isCommunitySite = communityDomains.some(d => domain.includes(d));
+    const isStaticPath = keywordPaths.some(p => pathname.includes(p));
+
+    // 판단 기준: 공공성이 강하거나 정보 제공 목적, 소셜 미디어, 뉴스, 쇼핑몰, 커뮤니티 사이트는 제외
+    if (isPublicDomain || isStaticPath || isSocialMedia || isNewsSite || isShoppingSite || isCommunitySite) {
+        return true; // 프로그램 기능 불필요
+    }
+
+    return false; // 사용자 개입 가능성 높음
 }
 
 // 노드 순회 -> controller로 요청 보내서 텍스트 변경
@@ -353,7 +400,7 @@ function checkToSession(node) {
 
     return savedValue || null;
   } catch(err) {
-    console.log('세션스토리지 조회 오류 || 비어있거나 조회 실패');
+    console.log('저장소가 비어있습니다.');
     return node;
   }
 }
@@ -444,4 +491,23 @@ function preserveSpace(original, replaced) {
   const trailing = original.match(/\s*$/)?.[0] ?? '';
   return leading + replaced + trailing;
 
+}
+
+// 블러 처리 CSS 클래스 추가 
+const style = document.createElement('style');
+style.textContent = `
+    .crocodile-bird-blur {
+        filter: blur(10px); /* 더 진한 모자이크 효과를 위해 값 조정 */
+        -webkit-filter: blur(10px);
+    }
+`;
+document.head.appendChild(style);
+
+// 요소에 블러 클래스 추가/제거 함수 
+function addBlurToElement(element) {
+    element.classList.add('crocodile-bird-blur');
+}
+
+function removeBlurFromElement(element) {
+    element.classList.remove('crocodile-bird-blur');
 }
