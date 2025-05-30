@@ -36,14 +36,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(`${message.step} 단계로 설정`);
   }
 
-  // 페이지 처리 필요 없음
-  if (isInformationalPage()) {
-    console.log(`이 페이지는 안전한 페이지 입니다.`);
-    sendResponse({ ok: true });
-    return;
-  }
-
-
   walkTextNodes();
   sendResponse({ ok: true });
 
@@ -56,10 +48,20 @@ async function walkTextNodes() {
   // 함수 시작 로그
   console.log('[Content] content.js loaded');
 
+  // 페이지 처리 필요 없음
+  if (isInformationalPage()) {
+    console.log(`이 페이지는 안전한 페이지 입니다.`);
+    return;
+  }
+
   chrome.storage.local.get('crocodileBirdStep', data => {
     sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
+
+  // null인 경우 탐색 안함
   const domTarget = checkSearchPage();
+  if (!domTarget) return;
+
   const nodes = [];
   if (domTarget == 'daum') {
     console.log('다중 treewalker 호출');
@@ -68,8 +70,14 @@ async function walkTextNodes() {
     startTreeWalker(nodes, walker1);
     startTreeWalker(nodes, walker2);
   }
+  else if (domTarget == 'naver') {
+    console.log('naver 검색 순화중');
+    const walker1 = document.createTreeWalker(document.querySelector('.lst_total'), NodeFilter.SHOW_TEXT);
+    const walker2 = document.createTreeWalker(document.querySelector('.lst_view'), NodeFilter.SHOW_TEXT);
+    startTreeWalker(nodes, walker1);
+    startTreeWalker(nodes, walker2);
+  }
   else {
-    console.log(domTarget);
     const walker = document.createTreeWalker(domTarget, NodeFilter.SHOW_TEXT);
 
     // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
@@ -83,14 +91,35 @@ async function walkTextNodes() {
     return;
   }
 
-  console.log('오버레이가 시작됩니다.')
+  console.log('오버레이가 시작됩니다. 순화할 node가 존재한다면 실행됨, 고정 시간: 2초')
   // 오버레이 삽입( 대기시간 )
   showOverlay();
+
+  // 개별 노드에 블러처리
+  nodes.forEach(node => {
+    if (node.parentNode) {
+      addBlurToElement(node.parentNode);
+    }
+  });
+
+  // 2초 뒤 전체 화면 오버레이 종료
+  setTimeout(() => {
+    removeOverlay();
+    console.log('전체 오버레이 종료');
+  }, 2000);
 
   const markedInput = await buildMarkedInput(nodes);
 
   // 순화 처리 - 오버레이 제거까지
   await cleanNodes(nodes, markedInput);
+
+  // 개별 노드의 블러처리 종료
+  nodes.forEach(node => {
+    if (node.parentNode) {
+      removeBlurFromElement(node.parentNode);
+    }
+  });
+  console.log('모든 노드 블러 처리 종료');
 }
 
 // [NODE_i] - 인덱스 제거
@@ -126,10 +155,11 @@ async function cleanNodes(nodes, markedInput) {
 
   // 입력 받은 배열을 다시 적용
   nodes.forEach((node, i) => {
-    node.nodeValue = parsed[i] || node.nodeValue;
+    if (parsed[i]) {
+      node.nodeValue = preserveSpace(node.nodeValue, parsed[i]);
+    }
   })
 
-  removeOverlay();
   console.log(`총 ${nodes.length}건의 순화 완료`);
 }
 
@@ -265,24 +295,48 @@ function isInformationalPage() {
   const domain = location.hostname;
   const pathname = location.pathname;
 
+  if ((domain + pathname).includes('www.google.com/search')) {
+    return false;
+  }
+  else if (domain.includes('.google.') || domain.includes('google.')) {
+    return true;
+  }
+
   const publicDomains = [
     'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-    'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so', 'www.naver.com',
+    'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
     'section.blog.naver.com',
 
     // 정보성 문서/도움말
     'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
     'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
-    'readthedocs.io', 'npmjs.com', 'pypi.org',
+    'readthedocs.io', 'npmjs.com', 'pypi.org', 'namu.wiki',
 
     // 이메일 서비스 도메인
     'outlook.live.com',     // Outlook
     'outlook.office.com',   // Outlook (기업용)
-    'mail.naver.com',       // 네이버 메일
-    'mail.daum.net',        // 다음 메일
+    'mail.daum.net',         // 다음 메일
     'mail.yahoo.com',       // 야후 메일
-    'proton.me',            // Proton Mail
-    'icloud.com',           // Apple iCloud Mail
+    'proton.me',             // Proton Mail
+    'icloud.com',           // Apple iCloud Mail'
+  ];
+
+  const socialMediaDomains = [
+    'www.facebook.com', 'www.instagram.com', 'twitter.com', 'www.youtube.com',
+    'www.linkedin.com', 'm.cafe.naver.com', 'blog.kakaocorp.com'
+  ];
+
+  const newsDomains = [
+    'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
+  ];
+
+  const shoppingDomains = [
+    'www.coupang.com', 'www.amazon.com', 'www.ebay.com'
+  ];
+
+  const communityDomains = [
+    'fmkorea.com', 'ruliweb.com', 'todayhumor.co.kr'
+    // 다른 커뮤니티 도메인 추가
   ];
 
   const keywordPaths = [
@@ -291,13 +345,21 @@ function isInformationalPage() {
     '/docs', '/document', '/manual', '/guide', '/getting-started',
     '/license', '/disclaimer', '/robots.txt', '/sitemap', '/technology',
     '/developers',
+    '/ads', '/advertisements', '/forum', '/boards', '/comments',
+    '/shop', '/store', '/products', '/member', '/users', '/profile'
   ];
 
   const isPublicDomain = publicDomains.some(d => domain.includes(d));
+  const isSocialMedia = socialMediaDomains.some(d => domain.includes(d));
+  const isNewsSite = newsDomains.some(d => domain.includes(d));
+  const isShoppingSite = shoppingDomains.some(d => domain.includes(d));
+  const isCommunitySite = communityDomains.some(d => domain.includes(d));
   const isStaticPath = keywordPaths.some(p => pathname.includes(p));
 
-  // 판단 기준
-  if (isPublicDomain || isStaticPath) return true; // 공공성 강함
+  // 판단 기준: 공공성이 강하거나 정보 제공 목적, 소셜 미디어, 뉴스, 쇼핑몰, 커뮤니티 사이트는 제외
+  if (isPublicDomain || isStaticPath || isSocialMedia || isNewsSite || isShoppingSite || isCommunitySite) {
+    return true; // 프로그램 기능 불필요
+  }
 
   return false; // 사용자 개입 가능성 높음
 }
@@ -317,7 +379,7 @@ async function sendCleanRequest(text, num) {
 function setChromeStorage(event, check) {
   chrome.storage.local.set({ [event]: check }, () => {
     console.log(`${event}가 ${check}로 설정됨`);
-    if(event == 'crocodileBirdStep') {
+    if (event == 'crocodileBirdStep') {
       sessionStorage.getItem('crocodileBirdStep');
     }
   }
@@ -326,18 +388,20 @@ function setChromeStorage(event, check) {
 
 // 세션 스토리지에 임시 저장 -> 효율적인 API 사용
 function saveToSession(nodes, parsed) {
+  const url = window.location.href;
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
+  const datas = checkToSession();
+
   try {
     // '원래 텍스트': {'변환된 텍스트'}
     let cnt = 0;
+
     nodes.forEach((node, i) => {
-      const sessionNode = checkToSession();
-      if(!sessionNode) {
-        sessionStorage.setItem(`${node.nodeValue}__${num}`, parsed[i]);
-        cnt++;
-      }
+      datas[node.nodeValue] = parsed[i];
+      cnt++;
     });
 
+    sessionStorage.setItem(`${url}__${num}`, JSON.stringify(datas));
     console.log(`세션스토리지에 ${cnt}개가 성공적으로 저장되었습니다.`);
   } catch (err) {
     console.log(`세션 스토리지 에러: ${err}`);
@@ -345,17 +409,17 @@ function saveToSession(nodes, parsed) {
 }
 
 // session 스토리지 반환 -> null 처리 포함
-function checkToSession(node) {
+function checkToSession() {
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
+  const url = window.location.href;
+  const sessionDatas = sessionStorage.getItem(`${url}__${num}`);
 
-  try {
-    const savedValue = sessionStorage.getItem(`${node.nodeValue}__${num}`);
-
-    return savedValue || null;
-  } catch(err) {
-    console.log('세션스토리지 조회 오류 || 비어있거나 조회 실패');
-    return node;
+  if (sessionDatas) {
+    const sessionDatasParsed = JSON.parse(sessionDatas);
+    return sessionDatasParsed || {};
   }
+
+  return {};
 }
 
 // nodes 배열 -> [NODE_i] mesage 형식으로 구조화
@@ -370,7 +434,7 @@ function classFilter(classString) {
   const keywords = [
     "like", "share", "recommend", "follow", "subscribe", "vote",
     "save", "bookmark", "meta", "sharing", "author",
-    "likes", "liked", "likers", "liker", "link"
+    "likes", "liked", "likers", "liker"
   ];
 
   const tokens = classString.toLowerCase().split(/[-_.:]/); // 클래스에서 구분자로 나눔
@@ -381,14 +445,22 @@ function classFilter(classString) {
 // 특정한 검색 도메인들에 대해 사전적인 처리 -> api 비용, 속도 향상
 function checkSearchPage() {
   const domain = location.hostname;
+  const path = location.pathname;
 
   if (domain.includes('.google.') || domain.includes('google.')) {
     console.log('google 사이트 입니다.');
     return document.getElementById('rso');
   }
-  else if (domain.includes('search.naver.com')) {
-    console.log('naver 검색 엔진 입니다.');
-    return document.querySelector('.lst_total');
+  else if (domain.includes('.naver.com')) {
+    if (domain.includes('search.naver.com')) {
+      console.log('naver 검색 엔진 입니다.');
+      return 'naver';
+    }
+    else if (path.includes('/article')) {
+      console.log('naver 뉴스 댓글 입니다.');
+      return document.querySelector('.u_cbox_content_wrap');
+    }
+    return;
   }
   else if (domain.includes('search.daum.net')) {
     console.log('daum 검색 엔진 입니다.');
@@ -402,14 +474,15 @@ function checkSearchPage() {
 
 // nodes에 순화 판단 및 처리를 위한 node 삽입
 function startTreeWalker(nodes, walker) {
+  const sessionValues = checkToSession();
+
   while (walker.nextNode()) {
     const node = walker.currentNode;
     const tag = node.parentNode?.nodeName?.toUpperCase();
-    const sessionValue = checkToSession(node);
-    
+
     // 세션스토리지 값 조회
-    if(sessionValue) {
-      node.nodeValue = preserveSpace(node.nodeValue, sessionValue);
+    if (sessionValues[node.nodeValue]) {
+      node.nodeValue = preserveSpace(node.nodeValue, sessionValues[node.nodeValue]);
       continue;
     }
 
@@ -435,7 +508,7 @@ function startTreeWalker(nodes, walker) {
       continue;
     }
 
-   nodes.push(node);
+    nodes.push(node);
   }
 };
 
@@ -444,4 +517,23 @@ function preserveSpace(original, replaced) {
   const trailing = original.match(/\s*$/)?.[0] ?? '';
   return leading + replaced + trailing;
 
+}
+
+// 블러 처리 CSS 클래스 추가 
+const style = document.createElement('style');
+style.textContent = `
+    .crocodile-bird-blur {
+        filter: blur(10px); /* 더 진한 모자이크 효과를 위해 값 조정 */
+        -webkit-filter: blur(10px);
+    }
+`;
+document.head.appendChild(style);
+
+// 요소에 블러 클래스 추가/제거 함수 
+function addBlurToElement(element) {
+  element.classList.add('crocodile-bird-blur');
+}
+
+function removeBlurFromElement(element) {
+  element.classList.remove('crocodile-bird-blur');
 }
