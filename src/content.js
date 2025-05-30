@@ -329,14 +329,16 @@ function saveToSession(nodes, parsed) {
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
   try {
     // '원래 텍스트': {'변환된 텍스트'}
+    let cnt = 0;
     nodes.forEach((node, i) => {
       const sessionNode = checkToSession();
       if(!sessionNode) {
         sessionStorage.setItem(`${node.nodeValue}__${num}`, parsed[i]);
+        cnt++;
       }
     });
 
-    console.log('세션스토리지에 성공적으로 저장되었습니다.');
+    console.log(`세션스토리지에 ${cnt}개가 성공적으로 저장되었습니다.`);
   } catch (err) {
     console.log(`세션 스토리지 에러: ${err}`);
   }
@@ -347,12 +349,11 @@ function checkToSession(node) {
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
 
   try {
-    console.log(`num is ${num}`);
     const savedValue = sessionStorage.getItem(`${node.nodeValue}__${num}`);
 
     return savedValue || null;
   } catch(err) {
-    console.log('세션스토리지 조회 오류');
+    console.log('세션스토리지 조회 오류 || 비어있거나 조회 실패');
     return node;
   }
 }
@@ -408,7 +409,6 @@ function startTreeWalker(nodes, walker) {
     
     // 세션스토리지 값 조회
     if(sessionValue) {
-      console.log(`세션스토리지 조회 성공: ${sessionValue}`);
       node.nodeValue = preserveSpace(node.nodeValue, sessionValue);
       continue;
     }
@@ -439,10 +439,6 @@ function startTreeWalker(nodes, walker) {
   }
 };
 
-// 텍스트의 공백, 개행 등 제거 후 붙이기 동작 - 원본 UI 유지
-// function extractCoreText(text) {
-//   return text.replace(/\s+/g, ' ').trim(); // 비교용 정제 텍스트
-// }
 function preserveSpace(original, replaced) {
   const leading = original.match(/^\s*/)?.[0] ?? '';
   const trailing = original.match(/\s*$/)?.[0] ?? '';
