@@ -4,9 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>Crocodile-Bird Bot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      font-family: 'Noto Sans KR', sans-serif;
       padding: 16px;
       width: 240px;
       background: #ffffff;
@@ -14,11 +15,32 @@
     }
 
     h3 {
-      margin-top: 0;
+      font-family: 'Noto Sans KR', sans-serif;
       font-size: 18px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 6px;
-      margin-bottom: 12px;
+      font-weight: 600;
+      text-align: center;
+      color: #2c2c2c;
+      margin: 0 0 20px 0;
+      padding: 12px 0;
+      border-bottom: 1px solid #d0d0d0;
+      background-color: #f4f6f8;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+      line-height: 1.5;
+      box-shadow: inset 0 -1px 0 #e0e0e0;
+    }
+
+    h3::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 3px;
+      background: rgba(124, 252, 0, 0.4);
+      border-radius: 3px;
+      box-shadow: 0 0 6px rgba(100, 221, 23, 0.5);
     }
 
     #toggleBird {
@@ -50,7 +72,7 @@
       font-size: 14px;
       cursor: pointer;
       border: none;
-      border-radius: 999px;
+      border-radius: 12px;
       background: linear-gradient(to right, #e8f5e9, #f1f8e9);
       color: #333;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -73,7 +95,7 @@
 </head>
 
 <body>
-  <h3>🐊 악어새 봇</h3>
+  <h3>악어새 봇</h3>
   <button id="toggleBird">악어새 호출</button>
 
   <div class="steps" id="stepButtons">
