@@ -1,6 +1,6 @@
 // 새로운 html 파일이 열리거나, 새로운 탭을 열었을 경우
 function checkChromeStorage() {
-  chrome.storage.local.get(['crocodileBirdOn', 'crocodileBirdstep'], data => {
+  chrome.storage.local.get(['crocodileBirdOn', 'crocodileBirdStep'], data => {
     if (data.crocodileBirdOn == true) {
       console.log('새로운 HTML을 처리합니다.');
       walkTextNodes();
@@ -11,17 +11,10 @@ function checkChromeStorage() {
 
     if (data.crocodileBirdStep === undefined) {
       setChromeStorage('crocodileBirdStep', 2);
+      sessionStorage.setItem('crocodileBirdStep', 2);
       console.log('기본 단게가 high_level로 설정됩니다.');
     }
   });
-}
-
-function setChromeStorage(event, check) {
-  chrome.storage.local.set({ [event]: check }, () => {
-    console.log(`${event}가 ${check}로 설정됨`);
-    if(event == 'crocodileBirdStep') window.crocodileBirdStep = check;
-  }
-  )
 }
 
 checkChromeStorage();
@@ -39,6 +32,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // 스텝 변경 후 다시 텍스트 처리
   else if (message.type === "SET_STEP") {
     setChromeStorage('crocodileBirdStep', message.step);
+    sessionStorage.setItem('crocodileBirdStep', message.step);
     console.log(`${message.step} 단계로 설정`);
   }
 
@@ -63,7 +57,7 @@ async function walkTextNodes() {
   console.log('[Content] content.js loaded');
 
   chrome.storage.local.get('crocodileBirdStep', data => {
-    window.crocodileBirdStep = data.crocodileBirdStep || 2;
+    sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
   const domTarget = checkSearchPage();
   const nodes = [];
@@ -99,7 +93,7 @@ async function walkTextNodes() {
   await cleanNodes(nodes, markedInput);
 }
 
-// 원래의 nodes 배열에 값 대입
+// [NODE_i] - 인덱스 제거
 function parseMarkedOutput(gptResponse, count) {
   const results = new Array(count).fill("");
 
@@ -118,7 +112,7 @@ function parseMarkedOutput(gptResponse, count) {
 
 // 비동기 순화 처리
 async function cleanNodes(nodes, markedInput) {
-  const num = window.crocodileBirdStep;
+  const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
 
   const cleaned = await sendCleanRequest(markedInput, num);
 
@@ -319,34 +313,47 @@ async function sendCleanRequest(text, num) {
   });
 }
 
-// 세션 스토리지에 임시 저장 -> 효율적인 API 사용
-function saveToSession(nodes, parsed) {
-  try {
-    nodes.forEach((node, i) => {
-      sessionStorage.setItem(`${node.nodeValue}`, `${parsed[i] || ''}`);
-    })
-  } catch (err) {
-    console.error(`세션 스토리지 에러: ${err}`);
+// chrome 스토리지에 저장 - crocodileBirdOn, crocodileBridStep
+function setChromeStorage(event, check) {
+  chrome.storage.local.set({ [event]: check }, () => {
+    console.log(`${event}가 ${check}로 설정됨`);
+    if(event == 'crocodileBirdStep') {
+      sessionStorage.getItem('crocodileBirdStep');
+    }
   }
-
-  console.log('세션스토리지에 성공적으로 저장되었습니다.');
+  )
 }
 
-function checkToSession(node) {
+// 세션 스토리지에 임시 저장 -> 효율적인 API 사용
+function saveToSession(nodes, parsed) {
+  const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
   try {
-    console.log('세션 스토리지를 확인 중 입니다...');
-    const sessionValue = sessionStorage.getItem(node.nodeValue);
+    // '원래 텍스트': {'변환된 텍스트'}
+    nodes.forEach((node, i) => {
+      const sessionNode = checkToSession();
+      if(!sessionNode) {
+        sessionStorage.setItem(`${node.nodeValue}__${num}`, parsed[i]);
+      }
+    });
 
-    // null 조회 방지
-    if (typeof node.nodeValue !== 'string') return false;
-    if (sessionValue) {
-      node.nodeValue = sessionValue;
-      return true;
-    }
-    return false;
+    console.log('세션스토리지에 성공적으로 저장되었습니다.');
   } catch (err) {
-    console.log(`세션 스토리지 확인 중 오류: ${err}`);
-    return false;
+    console.log(`세션 스토리지 에러: ${err}`);
+  }
+}
+
+// session 스토리지 반환 -> null 처리 포함
+function checkToSession(node) {
+  const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
+
+  try {
+    console.log(`num is ${num}`);
+    const savedValue = sessionStorage.getItem(`${node.nodeValue}__${num}`);
+
+    return savedValue || null;
+  } catch(err) {
+    console.log('세션스토리지 조회 오류');
+    return node;
   }
 }
 
@@ -397,6 +404,14 @@ function startTreeWalker(nodes, walker) {
   while (walker.nextNode()) {
     const node = walker.currentNode;
     const tag = node.parentNode?.nodeName?.toUpperCase();
+    const sessionValue = checkToSession(node);
+    
+    // 세션스토리지 값 조회
+    if(sessionValue) {
+      console.log(`세션스토리지 조회 성공: ${sessionValue}`);
+      node.nodeValue = preserveSpace(node.nodeValue, sessionValue);
+      continue;
+    }
 
     // 필요 없는 text 제외
     if (["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "NAV",
@@ -420,9 +435,17 @@ function startTreeWalker(nodes, walker) {
       continue;
     }
 
-    // session storage에 이미 저장된 nodeValue이면 pass
-    if (checkToSession(node)) continue;
-
-    nodes.push(node);
+   nodes.push(node);
   }
+};
+
+// 텍스트의 공백, 개행 등 제거 후 붙이기 동작 - 원본 UI 유지
+// function extractCoreText(text) {
+//   return text.replace(/\s+/g, ' ').trim(); // 비교용 정제 텍스트
+// }
+function preserveSpace(original, replaced) {
+  const leading = original.match(/^\s*/)?.[0] ?? '';
+  const trailing = original.match(/\s*$/)?.[0] ?? '';
+  return leading + replaced + trailing;
+
 }
