@@ -60,7 +60,7 @@ async function walkTextNodes() {
 
   // null인 경우 탐색 안함
   const domTarget = checkSearchPage();
-  if(!domTarget) return;
+  if (!domTarget) return;
 
   const nodes = [];
   if (domTarget == 'daum') {
@@ -70,7 +70,7 @@ async function walkTextNodes() {
     startTreeWalker(nodes, walker1);
     startTreeWalker(nodes, walker2);
   }
-  else if(domTarget == 'naver') {
+  else if (domTarget == 'naver') {
     console.log('naver 검색 순화중');
     const walker1 = document.createTreeWalker(document.querySelector('.lst_total'), NodeFilter.SHOW_TEXT);
     const walker2 = document.createTreeWalker(document.querySelector('.lst_view'), NodeFilter.SHOW_TEXT);
@@ -155,7 +155,9 @@ async function cleanNodes(nodes, markedInput) {
 
   // 입력 받은 배열을 다시 적용
   nodes.forEach((node, i) => {
-    node.nodeValue = parsed[i] || node.nodeValue;
+    if (parsed[i]) {
+      node.nodeValue = preserveSpace(node.nodeValue, parsed[i]);
+    }
   })
 
   console.log(`총 ${nodes.length}건의 순화 완료`);
@@ -290,76 +292,76 @@ function removeOverlay() {
 
 // 프로그램 기능이 필요 없는 사이트 판단
 function isInformationalPage() {
-    const domain = location.hostname;
-    const pathname = location.pathname;
+  const domain = location.hostname;
+  const pathname = location.pathname;
 
-    if((domain+pathname).includes('www.google.com/search')) {
-      return false;
-    }
-    else if(domain.includes('.google.') || domain.includes('google.')) {
-      return true;
-    }
+  if ((domain + pathname).includes('www.google.com/search')) {
+    return false;
+  }
+  else if (domain.includes('.google.') || domain.includes('google.')) {
+    return true;
+  }
 
-    const publicDomains = [
-        'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
-        'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
-        'section.blog.naver.com',
+  const publicDomains = [
+    'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
+    'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
+    'section.blog.naver.com',
 
-        // 정보성 문서/도움말
-        'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
-        'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
-        'readthedocs.io', 'npmjs.com', 'pypi.org', 'namu.wiki',
+    // 정보성 문서/도움말
+    'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
+    'mdn.mozilla.org', 'developer.mozilla.org', 'stackoverflow.com',
+    'readthedocs.io', 'npmjs.com', 'pypi.org', 'namu.wiki',
 
-        // 이메일 서비스 도메인
-        'outlook.live.com',     // Outlook
-        'outlook.office.com',   // Outlook (기업용)
-        'mail.daum.net',         // 다음 메일
-        'mail.yahoo.com',       // 야후 메일
-        'proton.me',             // Proton Mail
-        'icloud.com',           // Apple iCloud Mail'
-    ];
+    // 이메일 서비스 도메인
+    'outlook.live.com',     // Outlook
+    'outlook.office.com',   // Outlook (기업용)
+    'mail.daum.net',         // 다음 메일
+    'mail.yahoo.com',       // 야후 메일
+    'proton.me',             // Proton Mail
+    'icloud.com',           // Apple iCloud Mail'
+  ];
 
-    const socialMediaDomains = [
-        'www.facebook.com', 'www.instagram.com', 'twitter.com', 'www.youtube.com',
-        'www.linkedin.com', 'm.cafe.naver.com', 'blog.kakaocorp.com'
-    ];
+  const socialMediaDomains = [
+    'www.facebook.com', 'www.instagram.com', 'twitter.com', 'www.youtube.com',
+    'www.linkedin.com', 'm.cafe.naver.com', 'blog.kakaocorp.com'
+  ];
 
-    const newsDomains = [
-        'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
-    ];
+  const newsDomains = [
+    'news.daum.net', 'www.chosun.com', 'www.joongang.co.kr', 'www.hani.co.kr'
+  ];
 
-    const shoppingDomains = [
-        'www.coupang.com', 'www.amazon.com', 'www.ebay.com'
-    ];
+  const shoppingDomains = [
+    'www.coupang.com', 'www.amazon.com', 'www.ebay.com'
+  ];
 
-    const communityDomains = [
-        'fmkorea.com', 'ruliweb.com', 'todayhumor.co.kr'
-        // 다른 커뮤니티 도메인 추가
-    ];
+  const communityDomains = [
+    'fmkorea.com', 'ruliweb.com', 'todayhumor.co.kr'
+    // 다른 커뮤니티 도메인 추가
+  ];
 
-    const keywordPaths = [
-        '/policy', '/static', '/notice', '/faq', '/help', '/support',
-        '/terms', '/privacy', '/about', '/legal', '/copyright',
-        '/docs', '/document', '/manual', '/guide', '/getting-started',
-        '/license', '/disclaimer', '/robots.txt', '/sitemap', '/technology',
-        '/developers',
-        '/ads', '/advertisements', '/forum', '/boards', '/comments',
-        '/shop', '/store', '/products', '/member', '/users', '/profile'
-    ];
+  const keywordPaths = [
+    '/policy', '/static', '/notice', '/faq', '/help', '/support',
+    '/terms', '/privacy', '/about', '/legal', '/copyright',
+    '/docs', '/document', '/manual', '/guide', '/getting-started',
+    '/license', '/disclaimer', '/robots.txt', '/sitemap', '/technology',
+    '/developers',
+    '/ads', '/advertisements', '/forum', '/boards', '/comments',
+    '/shop', '/store', '/products', '/member', '/users', '/profile'
+  ];
 
-    const isPublicDomain = publicDomains.some(d => domain.includes(d));
-    const isSocialMedia = socialMediaDomains.some(d => domain.includes(d));
-    const isNewsSite = newsDomains.some(d => domain.includes(d));
-    const isShoppingSite = shoppingDomains.some(d => domain.includes(d));
-    const isCommunitySite = communityDomains.some(d => domain.includes(d));
-    const isStaticPath = keywordPaths.some(p => pathname.includes(p));
+  const isPublicDomain = publicDomains.some(d => domain.includes(d));
+  const isSocialMedia = socialMediaDomains.some(d => domain.includes(d));
+  const isNewsSite = newsDomains.some(d => domain.includes(d));
+  const isShoppingSite = shoppingDomains.some(d => domain.includes(d));
+  const isCommunitySite = communityDomains.some(d => domain.includes(d));
+  const isStaticPath = keywordPaths.some(p => pathname.includes(p));
 
-    // 판단 기준: 공공성이 강하거나 정보 제공 목적, 소셜 미디어, 뉴스, 쇼핑몰, 커뮤니티 사이트는 제외
-    if (isPublicDomain || isStaticPath || isSocialMedia || isNewsSite || isShoppingSite || isCommunitySite) {
-        return true; // 프로그램 기능 불필요
-    }
+  // 판단 기준: 공공성이 강하거나 정보 제공 목적, 소셜 미디어, 뉴스, 쇼핑몰, 커뮤니티 사이트는 제외
+  if (isPublicDomain || isStaticPath || isSocialMedia || isNewsSite || isShoppingSite || isCommunitySite) {
+    return true; // 프로그램 기능 불필요
+  }
 
-    return false; // 사용자 개입 가능성 높음
+  return false; // 사용자 개입 가능성 높음
 }
 
 // 노드 순회 -> controller로 요청 보내서 텍스트 변경
@@ -377,7 +379,7 @@ async function sendCleanRequest(text, num) {
 function setChromeStorage(event, check) {
   chrome.storage.local.set({ [event]: check }, () => {
     console.log(`${event}가 ${check}로 설정됨`);
-    if(event == 'crocodileBirdStep') {
+    if (event == 'crocodileBirdStep') {
       sessionStorage.getItem('crocodileBirdStep');
     }
   }
@@ -386,18 +388,20 @@ function setChromeStorage(event, check) {
 
 // 세션 스토리지에 임시 저장 -> 효율적인 API 사용
 function saveToSession(nodes, parsed) {
+  const url = window.location.href;
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
+  const datas = checkToSession();
+
   try {
     // '원래 텍스트': {'변환된 텍스트'}
     let cnt = 0;
+
     nodes.forEach((node, i) => {
-      const sessionNode = checkToSession();
-      if(!sessionNode) {
-        sessionStorage.setItem(`${node.nodeValue}__${num}`, parsed[i]);
-        cnt++;
-      }
+      datas[node.nodeValue] = parsed[i];
+      cnt++;
     });
 
+    sessionStorage.setItem(`${url}__${num}`, JSON.stringify(datas));
     console.log(`세션스토리지에 ${cnt}개가 성공적으로 저장되었습니다.`);
   } catch (err) {
     console.log(`세션 스토리지 에러: ${err}`);
@@ -405,17 +409,17 @@ function saveToSession(nodes, parsed) {
 }
 
 // session 스토리지 반환 -> null 처리 포함
-function checkToSession(node) {
+function checkToSession() {
   const num = parseInt(sessionStorage.getItem('crocodileBirdStep')) || 2;
+  const url = window.location.href;
+  const sessionDatas = sessionStorage.getItem(`${url}__${num}`);
 
-  try {
-    const savedValue = sessionStorage.getItem(`${node.nodeValue}__${num}`);
-
-    return savedValue || null;
-  } catch(err) {
-    console.log('저장소가 비어있습니다.');
-    return node;
+  if (sessionDatas) {
+    const sessionDatasParsed = JSON.parse(sessionDatas);
+    return sessionDatasParsed || {};
   }
+
+  return {};
 }
 
 // nodes 배열 -> [NODE_i] mesage 형식으로 구조화
@@ -448,11 +452,11 @@ function checkSearchPage() {
     return document.getElementById('rso');
   }
   else if (domain.includes('.naver.com')) {
-    if(domain.includes('search.naver.com')) {
+    if (domain.includes('search.naver.com')) {
       console.log('naver 검색 엔진 입니다.');
       return 'naver';
     }
-    else if(path.includes('/article')) {
+    else if (path.includes('/article')) {
       console.log('naver 뉴스 댓글 입니다.');
       return document.querySelector('.u_cbox_content_wrap');
     }
@@ -470,14 +474,15 @@ function checkSearchPage() {
 
 // nodes에 순화 판단 및 처리를 위한 node 삽입
 function startTreeWalker(nodes, walker) {
+  const sessionValues = checkToSession();
+
   while (walker.nextNode()) {
     const node = walker.currentNode;
     const tag = node.parentNode?.nodeName?.toUpperCase();
-    const sessionValue = checkToSession(node);
-    
+
     // 세션스토리지 값 조회
-    if(sessionValue) {
-      node.nodeValue = preserveSpace(node.nodeValue, sessionValue);
+    if (sessionValues[node.nodeValue]) {
+      node.nodeValue = preserveSpace(node.nodeValue, sessionValues[node.nodeValue]);
       continue;
     }
 
@@ -503,7 +508,7 @@ function startTreeWalker(nodes, walker) {
       continue;
     }
 
-   nodes.push(node);
+    nodes.push(node);
   }
 };
 
@@ -526,9 +531,9 @@ document.head.appendChild(style);
 
 // 요소에 블러 클래스 추가/제거 함수 
 function addBlurToElement(element) {
-    element.classList.add('crocodile-bird-blur');
+  element.classList.add('crocodile-bird-blur');
 }
 
 function removeBlurFromElement(element) {
-    element.classList.remove('crocodile-bird-blur');
+  element.classList.remove('crocodile-bird-blur');
 }
