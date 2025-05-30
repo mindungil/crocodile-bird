@@ -35,7 +35,7 @@ async function cleanText(text, num) {
 
 
         const res = await fetch(
-            'http://localhost:3000/api/cleanText',
+            'http://144.24.76.213:3000/api/cleanText',
             {
                 method: 'POST',
                 headers: {
