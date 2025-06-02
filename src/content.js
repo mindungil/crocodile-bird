@@ -458,7 +458,7 @@ function checkSearchPage() {
     }
     else if (path.includes('/article')) {
       console.log('naver 뉴스 댓글 입니다.');
-      return document.querySelector('.u_cbox_content_wrap');
+      return document.querySelector('u_cbox_text_wrap');
     }
     return;
   }
