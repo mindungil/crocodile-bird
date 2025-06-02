@@ -1,4 +1,4 @@
-const l=`
+const a=`
 당신의 역할은 문장 정제 전문가입니다. 아래의 [NODE_x] 형식 문장들을 일반 사용자에게 적절한 어조로 순화해주세요.
 
 🟢 [출력 형식 규칙]
@@ -76,4 +76,4 @@ const l=`
 
 
 아래 입력을 순화해주세요:
-`;chrome.runtime.onMessage.addListener((t,n,e)=>{if(t.type=="crocodile-bird-clean")return(async()=>{try{console.log("서버와의 통신 시작");const o=await a(t.text,t.num);e({cleaned:o})}catch(o){console.error(`clean Text 실패: ${o}`),e({cleaned:t.text})}})(),!0});async function a(t,n){try{let e;n==1?e=l:(n==2||console.log("프롬프트 번호 수신 오류"),e=c),console.log(`message 프롬프트: ${e}`);const o=await fetch("http://localhost:3000/api/cleanText",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:e},{role:"user",content:t}],num:n})});if(!o.ok)throw new Error(`서버 응답 실패: ${o.status}`);const r=await o.json();return console.log("서버 응답 데이터:",r),r.cleaned}catch(e){return console.error(e),t}}
+`;chrome.runtime.onMessage.addListener((t,n,e)=>{if(t.type=="crocodile-bird-clean")return(async()=>{try{console.log("서버와의 통신 시작");const o=await l(t.text,t.num);e({cleaned:o})}catch(o){console.error(`clean Text 실패: ${o}`),e({cleaned:t.text})}})(),!0});async function l(t,n){try{let e;n==1?e=a:(n==2||console.log("프롬프트 번호 수신 오류"),e=c),console.log(`message 프롬프트: ${e}`);const o=await fetch("http://144.24.76.213:3000/api/cleanText",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:e},{role:"user",content:t}],num:n})});if(!o.ok)throw new Error(`서버 응답 실패: ${o.status}`);const r=await o.json();return console.log("서버 응답 데이터:",r),r.cleaned}catch(e){return console.error(e),t}}
