@@ -58,9 +58,14 @@ async function walkTextNodes() {
     sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
 
-  // null인 경우 탐색 안함
-  const domTarget = checkSearchPage();
-  if (!domTarget) return;
+    // null인 경우 탐색 안함
+  const domTarget = await checkSearchPage();
+
+
+  if (!domTarget) {
+    console.log('target 페이지가 null 입니다.');
+    return;
+  }
 
   const nodes = [];
   if (domTarget == 'daum') {
@@ -305,7 +310,7 @@ function isInformationalPage() {
   const publicDomains = [
     'go.kr', 'korea.kr', '.ac.kr', 'gouv.fr', '.or.kr', 'gov.uk', '.re.kr', 'who.int', 'un.org',
     'openai.com', 'chat.openai.com', 'github.com', 'chrome://', 'notion.so',
-    'section.blog.naver.com',
+    'section.blog.naver.com', 'chatgpt.com',
 
     // 정보성 문서/도움말
     'wikipedia.org', 'wikimedia.org', 'archive.org', 'ietf.org',
@@ -443,34 +448,52 @@ function classFilter(classString) {
 }
 
 // 특정한 검색 도메인들에 대해 사전적인 처리 -> api 비용, 속도 향상
-function checkSearchPage() {
+async function checkSearchPage() {
   const domain = location.hostname;
   const path = location.pathname;
 
   if (domain.includes('.google.') || domain.includes('google.')) {
     console.log('google 사이트 입니다.');
     return document.getElementById('rso');
-  }
-  else if (domain.includes('.naver.com')) {
+  } else if (domain.includes('.naver.com')) {
     if (domain.includes('search.naver.com')) {
       console.log('naver 검색 엔진 입니다.');
       return 'naver';
-    }
-    else if (path.includes('/article')) {
+    } else if (path.includes('/article')) {
       console.log('naver 뉴스 댓글 입니다.');
-      return document.querySelector('u_cbox_text_wrap');
+
+      function waitForComment(timeoutMs = 3000) {
+        return new Promise((resolve) => {
+          const start = Date.now();
+          const interval = setInterval(() => {
+            const commentEl = document.querySelector('.u_cbox_text_wrap');
+            if (commentEl) {
+              console.log('찾음:', commentEl.textContent);
+              clearInterval(interval);
+              resolve(commentEl);
+            } else if (Date.now() - start > timeoutMs) {
+              console.warn('댓글 요소를 찾지 못했습니다 (3초 타임아웃)');
+              clearInterval(interval);
+              resolve(null);  // null 반환 허용
+            }
+          }, 500);
+        });
+      }
+
+      const commentElement = await waitForComment(3000);
+      return commentElement; // null이든 DOM Element든 그대로 반환
     }
+
     return;
-  }
-  else if (domain.includes('search.daum.net')) {
+  } else if (domain.includes('search.daum.net')) {
     console.log('daum 검색 엔진 입니다.');
     return 'daum';
-  }
-  else {
+  } else {
     console.log('일반 사이트 입니다.');
     return document.body;
   }
 }
+
 
 // nodes에 순화 판단 및 처리를 위한 node 삽입
 function startTreeWalker(nodes, walker) {
