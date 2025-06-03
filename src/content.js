@@ -448,7 +448,7 @@ async function checkSearchPage(nodes) {
     else if (path.includes('/article')) {
       console.log('naver 뉴스 댓글 입니다.');
 
-      function waitForComment(timeoutMs = 3000) {
+      function waitForComment(timeoutMs = 4000) {
         return new Promise((resolve) => {
           const start = Date.now();
           const interval = setInterval(() => {
@@ -457,7 +457,7 @@ async function checkSearchPage(nodes) {
               clearInterval(interval);
               resolve(commentEl);
             } else if (Date.now() - start > timeoutMs) {
-              console.warn('댓글 요소를 찾지 못했습니다 (3초 타임아웃)');
+              console.log('댓글 요소를 찾지 못했습니다 (4초 타임아웃)');
               clearInterval(interval);
               resolve(null);  // null 반환 허용
             }
