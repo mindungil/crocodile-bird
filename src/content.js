@@ -58,37 +58,9 @@ async function walkTextNodes() {
     sessionStorage.setItem('crocodileBirdStep', data.crocodileBirdStep);
   })
 
-    // null인 경우 탐색 안함
-  const domTarget = await checkSearchPage();
-
-
-  if (!domTarget) {
-    console.log('target 페이지가 null 입니다.');
-    return;
-  }
-
   const nodes = [];
-  if (domTarget == 'daum') {
-    console.log('다중 treewalker 호출');
-    const walker1 = document.createTreeWalker(document.getElementById('twdColl'), NodeFilter.SHOW_TEXT);
-    const walker2 = document.createTreeWalker(document.getElementById('st3Coll'), NodeFilter.SHOW_TEXT);
-    startTreeWalker(nodes, walker1);
-    startTreeWalker(nodes, walker2);
-  }
-  else if (domTarget == 'naver') {
-    console.log('naver 검색 순화중');
-    const walker1 = document.createTreeWalker(document.querySelector('.lst_total'), NodeFilter.SHOW_TEXT);
-    const walker2 = document.createTreeWalker(document.querySelector('.lst_view'), NodeFilter.SHOW_TEXT);
-    startTreeWalker(nodes, walker1);
-    startTreeWalker(nodes, walker2);
-  }
-  else {
-    const walker = document.createTreeWalker(domTarget, NodeFilter.SHOW_TEXT);
-
-    // 텍스트 노드를 하나씩 순회, 유효한 텍스트만 저장
-    // TreeWalker은 DOM 트리 구조를 순회
-    startTreeWalker(nodes, walker);
-  }
+  // 페이지 검사 및 순화 대상 nodes 획득
+  const basicPage = await checkSearchPage(nodes);
 
   // 순화할 node가 없으면 종료
   if (nodes.length === 0) {
@@ -96,9 +68,11 @@ async function walkTextNodes() {
     return;
   }
 
-  console.log('오버레이가 시작됩니다. 순화할 node가 존재한다면 실행됨, 고정 시간: 2초')
   // 오버레이 삽입( 대기시간 )
-  showOverlay();
+  if (basicPage) {
+    console.log('오버레이가 시작됩니다. 순화할 node가 존재한다면 실행됨, 고정 시간: 2초')
+    showOverlay();
+  }
 
   // 개별 노드에 블러처리
   nodes.forEach(node => {
@@ -109,7 +83,7 @@ async function walkTextNodes() {
 
   // 2초 뒤 전체 화면 오버레이 종료
   setTimeout(() => {
-    removeOverlay();
+    if (basicPage) removeOverlay();
     console.log('전체 오버레이 종료');
   }, 2000);
 
@@ -448,27 +422,38 @@ function classFilter(classString) {
 }
 
 // 특정한 검색 도메인들에 대해 사전적인 처리 -> api 비용, 속도 향상
-async function checkSearchPage() {
+async function checkSearchPage(nodes) {
   const domain = location.hostname;
   const path = location.pathname;
 
   if (domain.includes('.google.') || domain.includes('google.')) {
     console.log('google 사이트 입니다.');
-    return document.getElementById('rso');
-  } else if (domain.includes('.naver.com')) {
+
+    const walker = document.createTreeWalker(document.getElementById('rso'), NodeFilter.SHOW_TEXT);
+
+    startTreeWalker(nodes, walker);
+    return false;
+  }
+  else if (domain.includes('.naver.com')) {
     if (domain.includes('search.naver.com')) {
       console.log('naver 검색 엔진 입니다.');
-      return 'naver';
-    } else if (path.includes('/article')) {
+      const walker1 = document.createTreeWalker(document.querySelector('.lst_total'), NodeFilter.SHOW_TEXT);
+      const walker2 = document.createTreeWalker(document.querySelector('.lst_view'), NodeFilter.SHOW_TEXT);
+
+      startTreeWalker(nodes, walker1);
+      startTreeWalker(nodes, walker2);
+
+      return false;
+    }
+    else if (path.includes('/article')) {
       console.log('naver 뉴스 댓글 입니다.');
 
       function waitForComment(timeoutMs = 3000) {
         return new Promise((resolve) => {
           const start = Date.now();
           const interval = setInterval(() => {
-            const commentEl = document.querySelector('.u_cbox_text_wrap');
-            if (commentEl) {
-              console.log('찾음:', commentEl.textContent);
+            const commentEl = document.querySelectorAll('.u_cbox_contents');
+            if (commentEl.length > 0) {
               clearInterval(interval);
               resolve(commentEl);
             } else if (Date.now() - start > timeoutMs) {
@@ -481,16 +466,37 @@ async function checkSearchPage() {
       }
 
       const commentElement = await waitForComment(3000);
-      return commentElement; // null이든 DOM Element든 그대로 반환
+      if (commentElement && commentElement.length > 0) {
+        commentElement.forEach((node) => {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+
+          startTreeWalker(nodes, walker);
+        })
+      }
+
+      return false;
     }
 
-    return;
-  } else if (domain.includes('search.daum.net')) {
+    return false;
+  }
+  else if (domain.includes('search.daum.net')) {
     console.log('daum 검색 엔진 입니다.');
-    return 'daum';
-  } else {
+    console.log('다중 treewalker 호출');
+    const walker1 = document.createTreeWalker(document.getElementById('twdColl'), NodeFilter.SHOW_TEXT);
+    const walker2 = document.createTreeWalker(document.getElementById('st3Coll'), NodeFilter.SHOW_TEXT);
+
+    basicPage = false;
+    startTreeWalker(nodes, walker1);
+    startTreeWalker(nodes, walker2);
+
+    return false;
+  }
+  else {
     console.log('일반 사이트 입니다.');
-    return document.body;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+
+    startTreeWalker(nodes, walker);
+    return true;
   }
 }
 
